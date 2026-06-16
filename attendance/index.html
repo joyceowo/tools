@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極簡出勤與請假建議計算機</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-center items-center p-4 selection:bg-indigo-500 selection:text-white">
+
+    <div class="w-full max-w-4xl">
+        <!-- 簡約標題 -->
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent flex items-center justify-center gap-2">
+                <!-- Clock Icon -->
+                <svg class="w-7 h-7 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                出勤請假計算建議
+            </h1>
+            <p class="text-slate-500 text-xs mt-1">簡潔、精準、直覺的彈性工時小秘書</p>
+        </header>
+
+        <!-- 主卡片區 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12">
+            
+            <!-- 左側：輸入控制區 (5/12) -->
+            <div class="md:col-span-5 p-6 sm:p-8 bg-slate-900/50 border-b md:border-b-0 md:border-r border-slate-800 space-y-5">
+                <div class="space-y-4">
+                    <h2 class="text-sm font-bold tracking-wider text-slate-400 uppercase">模式切換</h2>
+                    
+                    <!-- 模式切換器 -->
+                    <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800/80">
+                        <button id="tab_forward" onclick="setMode('forward')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-slate-850 text-indigo-400">
+                            🕒 算下班時間
+                        </button>
+                        <button id="tab_backward" onclick="setMode('backward')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200">
+                            💡 回推請假時數
+                        </button>
+                    </div>
+
+                    <hr class="border-slate-800/60 my-2">
+
+                    <!-- 上班時間輸入 (共用) -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-400">上班打卡時間</label>
+                        <div class="relative flex gap-2">
+                            <input type="time" id="input_on_work" value="12:13" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-2xl font-mono font-bold text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <button onclick="setCurrentTime()" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-medium transition shrink-0">
+                                現在
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 模式 A：請假時數調整 (僅在 forward 顯示) -->
+                    <div id="wrapper_leave_hours" class="space-y-2">
+                        <label class="block text-xs font-semibold text-slate-400">預計請假時數</label>
+                        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-indigo-500">
+                            <button onclick="adjustLeave(-0.5)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-lg transition flex items-center justify-center">-</button>
+                            <div class="text-center flex-1">
+                                <input type="number" id="input_leave_hours" value="3.0" step="0.5" min="0" max="8" class="bg-transparent w-16 text-center text-2xl font-extrabold text-amber-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                <span class="text-xs text-slate-500 block">小時</span>
+                            </div>
+                            <button onclick="adjustLeave(0.5)" class="w-12 h-12 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-black text-lg transition flex items-center justify-center">+</button>
+                        </div>
+                    </div>
+
+                    <!-- 模式 B：預計下班時間 (僅在 backward 顯示) -->
+                    <div id="wrapper_off_work" class="space-y-2 hidden">
+                        <label class="block text-xs font-semibold text-slate-400">預計下班時間</label>
+                        <div class="relative flex gap-2">
+                            <input type="time" id="input_off_work" value="17:45" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-2xl font-mono font-bold text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 transition">
+                            <button onclick="setOffTimeToNow()" class="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl text-xs font-medium transition shrink-0">
+                                現在
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側：結果顯示區 (7/12) -->
+            <div class="md:col-span-7 p-6 sm:p-8 flex flex-col justify-between space-y-6">
+                <div>
+                    <h2 id="res_title" class="text-sm font-bold tracking-wider text-slate-400 uppercase mb-4">建議/最早打卡下班時間</h2>
+                    
+                    <!-- 主時間/主結果數字 -->
+                    <div class="flex items-baseline gap-3 mb-1">
+                        <span id="res_off_work_time" class="text-6xl font-black tracking-tight text-white font-mono leading-none">--:--</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full font-bold" id="res_off_period_tag">--</span>
+                    </div>
+                    <p id="res_sub_caption" class="text-slate-400 text-xs mt-2">滿足今日規定的工時</p>
+                </div>
+
+                <!-- 精簡狀態回饋卡片 -->
+                <div id="status_box" class="p-4 rounded-2xl border transition duration-300">
+                    <!-- 動態渲染狀態資訊 -->
+                </div>
+
+                <!-- 微型進度明細 (動態變更標題與數值) -->
+                <div class="grid grid-cols-3 gap-2 pt-4 border-t border-slate-800 text-center">
+                    <div class="p-2 bg-slate-950/40 rounded-xl">
+                        <span id="lbl_grid_1" class="text-[10px] text-slate-500 block">今日需工時</span>
+                        <span class="text-xs font-bold font-mono text-slate-200" id="res_needed_work_hours">--</span>
+                    </div>
+                    <div class="p-2 bg-slate-950/40 rounded-xl">
+                        <span id="lbl_grid_2" class="text-[10px] text-slate-500 block">上午已完成</span>
+                        <span class="text-xs font-bold font-mono text-emerald-400" id="res_morning_duration">--</span>
+                    </div>
+                    <div class="p-2 bg-slate-950/40 rounded-xl">
+                        <span id="lbl_grid_3" class="text-[10px] text-slate-500 block">下午需補滿</span>
+                        <span class="text-xs font-bold font-mono text-indigo-400" id="res_afternoon_needed">--</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 進階：公司規則設定 (預設摺疊，極簡呈現) -->
+        <div class="mt-4 text-center">
+            <button onclick="toggleSection('settings_panel')" class="text-xs text-slate-500 hover:text-indigo-400 transition inline-flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                自訂公司上下班規則 / 每日工時設定
+            </button>
+
+            <!-- 摺疊設定面板 -->
+            <div id="settings_panel" class="hidden text-left bg-slate-900 border border-slate-800 rounded-2xl p-5 mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                <div class="space-y-1">
+                    <label class="block text-[11px] text-slate-400 font-bold uppercase">彈性上班時間</label>
+                    <div class="flex items-center gap-1.5">
+                        <input type="time" id="cfg_work_start" value="08:30" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                        <span class="text-slate-600 text-xs">~</span>
+                        <input type="time" id="cfg_work_end" value="09:30" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-[11px] text-slate-400 font-bold uppercase">中午休息時間</label>
+                    <div class="flex items-center gap-1.5">
+                        <input type="time" id="cfg_rest_start" value="12:15" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                        <span class="text-slate-600 text-xs">~</span>
+                        <input type="time" id="cfg_rest_end" value="13:30" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-[11px] text-slate-400 font-bold uppercase">正常下班區間 (參考)</label>
+                    <div class="flex items-center gap-1.5">
+                        <input type="time" id="cfg_off_start" value="17:45" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                        <span class="text-slate-600 text-xs">~</span>
+                        <input type="time" id="cfg_off_end" value="18:45" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="block text-[11px] text-slate-400 font-bold uppercase">每日規定工時</label>
+                        <input type="number" id="cfg_required_hours" value="8" step="0.5" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-[11px] text-slate-400 font-bold uppercase">請假最小單位</label>
+                        <select id="cfg_leave_unit" class="bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-300 w-full focus:outline-none">
+                            <option value="30">30 分鐘</option>
+                            <option value="60">1 小時</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 邏輯運算 JavaScript -->
+    <script>
+        // 全域當前模式控制：'forward' (算下班) 或 'backward' (回推請假)
+        let currentMode = 'forward';
+
+        // 監聽所有輸入欄位的變化並即時計算
+        const reactiveInputs = [
+            'cfg_work_start', 'cfg_work_end', 'cfg_rest_start', 'cfg_rest_end', 
+            'cfg_off_start', 'cfg_off_end', 'cfg_required_hours', 'cfg_leave_unit',
+            'input_on_work', 'input_leave_hours', 'input_off_work'
+        ];
+        
+        reactiveInputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', calculateAll);
+        });
+
+        // 切換模式：算下班 vs 算請假
+        function setMode(mode) {
+            currentMode = mode;
+            const tabForward = document.getElementById('tab_forward');
+            const tabBackward = document.getElementById('tab_backward');
+            const wrapperLeaveHours = document.getElementById('wrapper_leave_hours');
+            const wrapperOffWork = document.getElementById('wrapper_off_work');
+
+            if (mode === 'forward') {
+                tabForward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-slate-850 text-indigo-400";
+                tabBackward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
+                
+                wrapperLeaveHours.classList.remove('hidden');
+                wrapperOffWork.classList.add('hidden');
+            } else {
+                tabForward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
+                tabBackward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-slate-850 text-indigo-400";
+                
+                wrapperLeaveHours.classList.add('hidden');
+                wrapperOffWork.classList.remove('hidden');
+            }
+            calculateAll();
+        }
+
+        // 展開或摺疊自訂設定面板
+        function toggleSection(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+        }
+
+        // 調整請假時數按鈕
+        function adjustLeave(amount) {
+            const input = document.getElementById('input_leave_hours');
+            let val = parseFloat(input.value) || 0;
+            val = Math.max(0, Math.min(8, val + amount));
+            input.value = val.toFixed(1);
+            calculateAll();
+        }
+
+        // 設置為現在時間
+        function setCurrentTime() {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('input_on_work').value = `${hh}:${mm}`;
+            calculateAll();
+        }
+
+        // 設置預計下班為現在時間
+        function setOffTimeToNow() {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('input_off_work').value = `${hh}:${mm}`;
+            calculateAll();
+        }
+
+        // 時間轉換："HH:MM" -> 自當天 00:00 的分鐘數
+        function timeToMins(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        // 分鐘數 -> "HH:MM"
+        function minsToTimeStr(mins) {
+            const h = Math.floor(mins / 60) % 24;
+            const m = mins % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        // 分鐘轉時分文字描述
+        function minsToReadable(mins) {
+            if (mins <= 0) return '0分';
+            const h = Math.floor(mins / 60);
+            const m = mins % 60;
+            return h > 0 ? `${h}小時${m}分` : `${m}分`;
+        }
+
+        // 輔助計算：扣除中午休息，得出實際工作的總分鐘數
+        function calcActualWorkMins(startMin, endMin, restStart, restEnd) {
+            if (endMin <= startMin) return 0;
+            
+            let total = 0;
+            // 1. 上半天工作時間 (午休前)
+            if (startMin < restStart) {
+                const morningEnd = Math.min(endMin, restStart);
+                total += (morningEnd - startMin);
+            }
+            // 2. 下半天工作時間 (午休後)
+            if (endMin > restEnd) {
+                const afternoonStart = Math.max(startMin, restEnd);
+                total += (endMin - afternoonStart);
+            }
+            return total;
+        }
+
+        // 輔助計算：考慮休息時間，推算請假 N 分鐘後的工作起始或終止時間點
+        function getLeaveTimeEnd(startMin, leaveMins, restStart, restEnd) {
+            let currentMin = startMin;
+            let remaining = leaveMins;
+            if (currentMin < restStart) {
+                const availableBeforeRest = restStart - currentMin;
+                if (remaining <= availableBeforeRest) {
+                    return currentMin + remaining;
+                } else {
+                    remaining -= availableBeforeRest;
+                    currentMin = restEnd;
+                }
+            } else if (currentMin >= restStart && currentMin < restEnd) {
+                currentMin = restEnd;
+            }
+            return currentMin + remaining;
+        }
+
+        // 輔助計算：從指定終點往前推算 N 分鐘工時的時間起點 (智慧跨過午休)
+        function getLeaveTimeStart(endMin, durationMins, restStart, restEnd) {
+            let currentMin = endMin;
+            let remaining = durationMins;
+            
+            if (currentMin > restEnd) {
+                const availableAfternoon = currentMin - restEnd;
+                if (remaining <= availableAfternoon) {
+                    return currentMin - remaining;
+                } else {
+                    remaining -= availableAfternoon;
+                    currentMin = restStart;
+                }
+            } else if (currentMin >= restStart && currentMin <= restEnd) {
+                currentMin = restStart;
+            }
+            return currentMin - remaining;
+        }
+
+        // 輔助計算：在已給定上班、請假時數下，最早幾點可以下班
+        function getEarliestOffWorkMin(startMin, leaveHours, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours) {
+            let effectiveStartMin = startMin < cfgWorkStart ? cfgWorkStart : startMin;
+            const remainingWorkMin = (cfgRequiredHours - leaveHours) * 60;
+            if (remainingWorkMin <= 0) return effectiveStartMin;
+            
+            let currentMin = effectiveStartMin;
+            let targetWorkMin = remainingWorkMin;
+            
+            if (effectiveStartMin < cfgRestStart) {
+                const possibleMorningWork = cfgRestStart - effectiveStartMin;
+                if (targetWorkMin <= possibleMorningWork) {
+                    currentMin = effectiveStartMin + targetWorkMin;
+                } else {
+                    targetWorkMin -= possibleMorningWork;
+                    currentMin = cfgRestEnd + targetWorkMin;
+                }
+            } else {
+                let actualStart = effectiveStartMin;
+                if (actualStart >= cfgRestStart && actualStart < cfgRestEnd) {
+                    actualStart = cfgRestEnd;
+                }
+                currentMin = actualStart + targetWorkMin;
+            }
+            return currentMin;
+        }
+
+        // 核心計算邏輯
+        function calculateAll() {
+            // 1. 取得規則參數
+            const cfgWorkStart = timeToMins(document.getElementById('cfg_work_start').value);
+            const cfgWorkEnd = timeToMins(document.getElementById('cfg_work_end').value);
+            const cfgRestStart = timeToMins(document.getElementById('cfg_rest_start').value);
+            const cfgRestEnd = timeToMins(document.getElementById('cfg_rest_end').value);
+            const cfgOffStart = timeToMins(document.getElementById('cfg_off_start').value);
+            const cfgOffEnd = timeToMins(document.getElementById('cfg_off_end').value);
+            const cfgRequiredHours = parseFloat(document.getElementById('cfg_required_hours').value) || 8;
+            const cfgLeaveUnit = parseInt(document.getElementById('cfg_leave_unit').value) || 30;
+
+            // 2. 取得上班打卡時間
+            const onWorkTimeStr = document.getElementById('input_on_work').value;
+            const onWorkMin = timeToMins(onWorkTimeStr);
+            const restDuration = cfgRestEnd - cfgRestStart;
+
+            // DOM 元素對照
+            const resTitle = document.getElementById('res_title');
+            const resDisplayValue = document.getElementById('res_off_work_time');
+            const resSubCaption = document.getElementById('res_sub_caption');
+            const resOffPeriodTag = document.getElementById('res_off_period_tag');
+            const statusBox = document.getElementById('status_box');
+
+            const lblGrid1 = document.getElementById('lbl_grid_1');
+            const lblGrid2 = document.getElementById('lbl_grid_2');
+            const lblGrid3 = document.getElementById('lbl_grid_3');
+
+            const resNeededWorkHours = document.getElementById('res_needed_work_hours');
+            const resMorningDuration = document.getElementById('res_morning_duration');
+            const resAfternoonNeeded = document.getElementById('res_afternoon_needed');
+
+            // 3. 分流計算
+            if (currentMode === 'forward') {
+                // ==================== 模式 A：算下班時間 ====================
+                const leaveHours = parseFloat(document.getElementById('input_leave_hours').value) || 0;
+                const totalLeaveMins = leaveHours * 60;
+                const remainingWorkMin = (cfgRequiredHours - leaveHours) * 60;
+
+                // 檢查是否遲到
+                let isLate = onWorkMin > cfgWorkEnd;
+                let latenessMins = isLate ? calcActualWorkMins(cfgWorkEnd, onWorkMin, cfgRestStart, cfgRestEnd) : 0;
+                let minMorningLeaveMins = isLate ? Math.ceil(latenessMins / cfgLeaveUnit) * cfgLeaveUnit : 0;
+                let minMorningLeaveHours = minMorningLeaveMins / 60;
+
+                let leaveRangesHtml = '';
+                let statusHTML = '';
+                let statusClass = '';
+
+                let effectiveStartMin = onWorkMin < cfgWorkStart ? cfgWorkStart : onWorkMin;
+                let morningDuration = 0;
+                let afternoonNeeded = 0;
+                let currentMin = effectiveStartMin;
+                let targetWorkMin = remainingWorkMin;
+
+                if (isLate) {
+                    if (leaveHours < minMorningLeaveHours) {
+                        statusClass = 'border-rose-500/20 bg-rose-500/5';
+                        statusHTML = `
+                            <div class="text-rose-400 font-bold text-sm mb-1">⚠️ 請假時數不足以覆蓋遲到</div>
+                            <div class="text-xs text-slate-300 leading-relaxed">
+                                您於 <span class="text-rose-300 font-bold">${onWorkTimeStr}</span> 打卡，已超過彈性時間截止點 ${minsToTimeStr(cfgWorkEnd)}（實質遲到工時 ${latenessMins} 分鐘）。<br>
+                                依規定，您<b>最少必須請假 ${minMorningLeaveHours.toFixed(1)} 小時</b> (建議區間：<span class="text-amber-400 font-bold">${minsToTimeStr(cfgWorkEnd)} ~ ${minsToTimeStr(getLeaveTimeEnd(cfgWorkEnd, minMorningLeaveMins, cfgRestStart, cfgRestEnd))}</span>)。<br>
+                                請點選左側調整按鈕將請假時數調整為至少 <span class="text-emerald-400 font-bold">${minMorningLeaveHours.toFixed(1)}</span> 小時。
+                            </div>
+                        `;
+                    } else {
+                        // 【智慧合併優化】：優先嘗試將假單完美合併至早上（起點固定為 08:30）
+                        const singleLeaveEndMin = getLeaveTimeEnd(cfgWorkStart, totalLeaveMins, cfgRestStart, cfgRestEnd);
+                        let morningLeaveMins = 0;
+                        let afternoonLeaveMins = 0;
+                        let morningRangeStr = '';
+                        let afternoonRangeStr = '';
+
+                        // 只要假單結束時間大於等於實際打卡時間（能安全覆蓋到），就可以直接一筆合併！
+                        if (singleLeaveEndMin >= onWorkMin) {
+                            morningLeaveMins = totalLeaveMins;
+                            afternoonLeaveMins = 0;
+                            
+                            let lunchNoticeStr = "";
+                            if (cfgWorkStart < cfgRestStart && singleLeaveEndMin > cfgRestEnd) {
+                                lunchNoticeStr = ` (含午休 ${minsToTimeStr(cfgRestStart)} ~ ${minsToTimeStr(cfgRestEnd)}，實質扣除)`;
+                            }
+                            morningRangeStr = `${minsToTimeStr(cfgWorkStart)} ~ ${minsToTimeStr(singleLeaveEndMin)}${lunchNoticeStr}`;
+                            effectiveStartMin = singleLeaveEndMin;
+                        } else {
+                            // 拆分
+                            const maxMorningWorkMins = calcActualWorkMins(cfgWorkStart, onWorkMin, cfgRestStart, cfgRestEnd);
+                            morningLeaveMins = Math.floor(maxMorningWorkMins / cfgLeaveUnit) * cfgLeaveUnit;
+                            if (morningLeaveMins > totalLeaveMins) morningLeaveMins = totalLeaveMins;
+                            afternoonLeaveMins = totalLeaveMins - morningLeaveMins;
+
+                            const morningStartMin = getLeaveTimeStart(onWorkMin, morningLeaveMins, cfgRestStart, cfgRestEnd);
+                            morningRangeStr = `${minsToTimeStr(morningStartMin)} ~ ${minsToTimeStr(onWorkMin)}`;
+                            effectiveStartMin = onWorkMin;
+                        }
+
+                        currentMin = effectiveStartMin;
+                        targetWorkMin = remainingWorkMin;
+
+                        if (targetWorkMin > 0) {
+                            if (effectiveStartMin < cfgRestStart) {
+                                const possibleMorningWork = cfgRestStart - effectiveStartMin;
+                                if (targetWorkMin <= possibleMorningWork) {
+                                    currentMin = effectiveStartMin + targetWorkMin;
+                                    morningDuration = targetWorkMin;
+                                    targetWorkMin = 0;
+                                } else {
+                                    morningDuration = possibleMorningWork;
+                                    targetWorkMin -= possibleMorningWork;
+                                    currentMin = cfgRestEnd;
+                                }
+                            } else if (effectiveStartMin >= cfgRestStart && effectiveStartMin < cfgRestEnd) {
+                                currentMin = cfgRestEnd;
+                            }
+                            if (targetWorkMin > 0) {
+                                afternoonNeeded = targetWorkMin;
+                                currentMin += targetWorkMin;
+                            }
+                        }
+
+                        // 建立假單細節 HTML 顯示
+                        leaveRangesHtml = `👉 <b>建議請假申報：</b><span class="text-amber-400 font-bold font-mono">${morningRangeStr}</span> (共 ${leaveHours.toFixed(1)} 小時)`;
+                        if (afternoonLeaveMins > 0) {
+                            const aftEnd = getLeaveTimeEnd(currentMin, afternoonLeaveMins, cfgRestStart, cfgRestEnd);
+                            leaveRangesHtml = `👉 <b>建議請假申報：</b><br>
+                                • 早上：<span class="text-amber-400 font-bold font-mono">${morningRangeStr}</span> (${(morningLeaveMins/60).toFixed(1)}小時)<br>
+                                • 下午：<span class="text-amber-400 font-bold font-mono">${minsToTimeStr(currentMin)} ~ ${minsToTimeStr(aftEnd)}</span> (${(afternoonLeaveMins/60).toFixed(1)}小時)`;
+                        }
+
+                        statusClass = 'border-emerald-500/10 bg-emerald-500/5';
+                        statusHTML = `
+                            <div class="text-emerald-400 font-bold text-sm mb-1">✅ 彈性請假出勤建議</div>
+                            <div class="text-xs text-slate-300 leading-relaxed space-y-1">
+                                <div>您的請假時數已覆蓋遲到區間，出勤狀態正常！</div>
+                                <div class="my-1.5 p-2 bg-slate-950/40 border border-slate-800/80 rounded-xl inline-block">${leaveRangesHtml}</div>
+                                <div>您今天於 <span class="text-indigo-400 font-bold font-mono">${minsToTimeStr(currentMin)}</span> 打卡即可下班。</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    // 沒遲到，請假視為提早下班
+                    const normalOffWorkMin = getEarliestOffWorkMin(onWorkMin, 0, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
+                    currentMin = getEarliestOffWorkMin(onWorkMin, leaveHours, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
+
+                    if (leaveHours > 0) {
+                        leaveRangesHtml = `👉 <b>建議請假申報：</b><span class="text-amber-400 font-bold font-mono">${minsToTimeStr(currentMin)} ~ ${minsToTimeStr(normalOffWorkMin)}</span> (共 ${leaveHours.toFixed(1)} 小時)`;
+                    }
+
+                    if (targetWorkMin > 0) {
+                        if (effectiveStartMin < cfgRestStart) {
+                            const possibleMorningWork = cfgRestStart - effectiveStartMin;
+                            if (targetWorkMin <= possibleMorningWork) {
+                                morningDuration = targetWorkMin;
+                            } else {
+                                morningDuration = possibleMorningWork;
+                                afternoonNeeded = targetWorkMin - possibleMorningWork;
+                            }
+                        } else {
+                            afternoonNeeded = targetWorkMin;
+                        }
+                    }
+
+                    statusClass = 'border-slate-800 bg-slate-950/40';
+                    statusHTML = `
+                        <div class="text-emerald-400 font-bold text-sm mb-1">✅ 正常出勤狀態</div>
+                        <div class="text-xs text-slate-300 leading-relaxed space-y-1">
+                            ${leaveHours > 0 ? `<div class="my-1.5 p-2 bg-slate-950/40 border border-slate-800/80 rounded-xl inline-block">${leaveRangesHtml}</div>` : '今日上班一切正常，無需請假。'}
+                            <div>在 <span class="text-indigo-400 font-bold font-mono">${minsToTimeStr(currentMin)}</span> 打卡即可開心下班！</div>
+                        </div>
+                    `;
+                }
+
+                const finalOffWorkMin = currentMin;
+
+                resTitle.innerText = "建議/最早打卡下班時間";
+                resDisplayValue.innerText = minsToTimeStr(finalOffWorkMin);
+                resSubCaption.innerText = "滿足今日規定的工時";
+
+                lblGrid1.innerText = "今日需工時";
+                resNeededWorkHours.innerText = `${(cfgRequiredHours - leaveHours).toFixed(1)}h`;
+                lblGrid2.innerText = "上午已完成";
+                resMorningDuration.innerText = `${morningDuration}m`;
+                lblGrid3.innerText = "下午需補足";
+                resAfternoonNeeded.innerText = `${afternoonNeeded}m`;
+
+                if (finalOffWorkMin < cfgOffStart) {
+                    resOffPeriodTag.innerText = '提早下班';
+                    resOffPeriodTag.className = 'text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20';
+                } else if (finalOffWorkMin > cfgOffEnd) {
+                    resOffPeriodTag.innerText = '延遲下班';
+                    resOffPeriodTag.className = 'text-[10px] text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20';
+                } else {
+                    resOffPeriodTag.innerText = '正常下班';
+                    resOffPeriodTag.className = 'text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20';
+                }
+
+                statusBox.innerHTML = statusHTML;
+                statusBox.className = `p-4 rounded-2xl border transition duration-300 ${statusClass}`;
+
+            } else if (currentMode === 'backward') {
+                // ==================== 模式 B：回推請假時數 ====================
+                const offWorkTimeStr = document.getElementById('input_off_work').value;
+                const offWorkMin = timeToMins(offWorkTimeStr);
+
+                // 1. 計算實際工時與工時缺口
+                const actualWorkMins = calcActualWorkMins(onWorkMin, offWorkMin, cfgRestStart, cfgRestEnd);
+                const totalRequiredWorkMins = cfgRequiredHours * 60;
+                const deficitMins = totalRequiredWorkMins - actualWorkMins;
+
+                let morningLeaveMins = 0;
+                let afternoonLeaveMins = 0;
+                let morningLeaveHtml = '';
+                let afternoonLeaveHtml = '';
+                let singleLeaveEndMin = 0;
+
+                // 判定是否遲到
+                const isLate = onWorkMin > cfgWorkEnd;
+
+                if (deficitMins > 0) {
+                    const totalLeaveMins = Math.ceil(deficitMins / cfgLeaveUnit) * cfgLeaveUnit;
+                    singleLeaveEndMin = getLeaveTimeEnd(cfgWorkStart, totalLeaveMins, cfgRestStart, cfgRestEnd);
+
+                    if (singleLeaveEndMin <= offWorkMin) {
+                        // 【智慧合併核心】：完美合併成功！下午不需要再請假了
+                        morningLeaveMins = totalLeaveMins;
+                        afternoonLeaveMins = 0;
+                        const morningLeaveStartStr = minsToTimeStr(cfgWorkStart);
+                        const morningLeaveEndStr = minsToTimeStr(singleLeaveEndMin);
+                        
+                        // 檢查是否跨越午休，如果是，提示含午休
+                        let lunchNoticeStr = "";
+                        if (cfgWorkStart < cfgRestStart && singleLeaveEndMin > cfgRestEnd) {
+                            lunchNoticeStr = ` (含午休 ${minsToTimeStr(cfgRestStart)} ~ ${minsToTimeStr(cfgRestEnd)}，實質扣除)`;
+                        }
+                        
+                        morningLeaveHtml = `• 早上合併請假：<span class="text-amber-400 font-bold font-mono">${morningLeaveStartStr} ~ ${morningLeaveEndStr}</span> (${(morningLeaveMins/60).toFixed(1)}小時)${lunchNoticeStr}`;
+                    } else {
+                        // 無法完全合併到早上，早上請假最大化 (採向下取整，精準防止請假時間超過打卡時間)
+                        if (isLate) {
+                            const maxMorningWorkMins = calcActualWorkMins(cfgWorkStart, onWorkMin, cfgRestStart, cfgRestEnd);
+                            let maxMorningLeaveMins = Math.floor(maxMorningWorkMins / cfgLeaveUnit) * cfgLeaveUnit;
+                            if (maxMorningLeaveMins > totalLeaveMins) maxMorningLeaveMins = totalLeaveMins;
+
+                            morningLeaveMins = maxMorningLeaveMins;
+                            afternoonLeaveMins = totalLeaveMins - morningLeaveMins;
+
+                            // 早上請假區間
+                            const morningStartMin = getLeaveTimeStart(onWorkMin, morningLeaveMins, cfgRestStart, cfgRestEnd);
+                            morningLeaveHtml = `• 早上遲到請假：<span class="text-amber-400 font-bold font-mono">${minsToTimeStr(morningStartMin)} ~ ${minsToTimeStr(onWorkMin)}</span> (${(morningLeaveMins/60).toFixed(1)}小時)`;
+
+                            // 下午請假區間
+                            if (afternoonLeaveMins > 0) {
+                                const afternoonLeaveEnd = getLeaveTimeEnd(offWorkMin, afternoonLeaveMins, cfgRestStart, cfgRestEnd);
+                                afternoonLeaveHtml = `• 下午提早下班請假：<span class="text-amber-400 font-bold font-mono">${offWorkTimeStr} ~ ${minsToTimeStr(afternoonLeaveEnd)}</span> (${(afternoonLeaveMins/60).toFixed(1)}小時)`;
+                            }
+                        } else {
+                            // 沒遲到，請假全算下午
+                            afternoonLeaveMins = totalLeaveMins;
+                            const afternoonLeaveEnd = getLeaveTimeEnd(offWorkMin, afternoonLeaveMins, cfgRestStart, cfgRestEnd);
+                            afternoonLeaveHtml = `• 下午提早下班請假：<span class="text-amber-400 font-bold font-mono">${offWorkTimeStr} ~ ${minsToTimeStr(afternoonLeaveEnd)}</span> (${(afternoonLeaveMins/60).toFixed(1)}小時)`;
+                        }
+                    }
+                }
+
+                const totalLeaveHours = (morningLeaveMins + afternoonLeaveMins) / 60;
+
+                // 4. 計算省時小祕訣
+                const earliestOffWorkMin = getEarliestOffWorkMin(onWorkMin, totalLeaveHours, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
+                const cushionMins = offWorkMin - earliestOffWorkMin;
+
+                // 智慧判定起算打卡時間：若是完美合併，起算點為公司彈性起點 (08:30)；否則為早上假單起始點。
+                const effectiveStartMin = isLate && morningLeaveMins > 0 
+                    ? (singleLeaveEndMin <= offWorkMin ? cfgWorkStart : getLeaveTimeStart(onWorkMin, morningLeaveMins, cfgRestStart, cfgRestEnd))
+                    : (onWorkMin < cfgWorkStart ? cfgWorkStart : onWorkMin);
+
+                resTitle.innerText = "建議/最佳請假時數";
+                resDisplayValue.innerText = `${totalLeaveHours.toFixed(1)} 小時`;
+                resSubCaption.innerText = `於 ${offWorkTimeStr} 下班所需的最低請假量`;
+
+                lblGrid1.innerText = "實際總工時";
+                resNeededWorkHours.innerText = minsToReadable(actualWorkMins);
+                lblGrid2.innerText = "工時不夠差額";
+                resMorningDuration.innerText = deficitMins > 0 ? `${deficitMins}分鐘` : "無";
+                lblGrid3.innerText = "有效起算打卡";
+                resAfternoonNeeded.innerText = minsToTimeStr(effectiveStartMin);
+
+                if (totalLeaveHours === 0) {
+                    resOffPeriodTag.innerText = '無需請假';
+                    resOffPeriodTag.className = 'text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20';
+                } else if (totalLeaveHours <= 2) {
+                    resOffPeriodTag.innerText = '超省時方案';
+                    resOffPeriodTag.className = 'text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20';
+                } else {
+                    resOffPeriodTag.innerText = '建議請假';
+                    resOffPeriodTag.className = 'text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20';
+                }
+
+                // 建立乾淨直覺的請假區間清單 HTML
+                let leaveDetailsHtml = '';
+                if (morningLeaveMins > 0 || afternoonLeaveMins > 0) {
+                    leaveDetailsHtml += `<div class="my-2 p-3 bg-slate-950/50 border border-slate-800 rounded-xl space-y-1.5">`;
+                    if (morningLeaveMins > 0) {
+                        leaveDetailsHtml += `<div class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span><span>${morningLeaveHtml}</span></div>`;
+                    }
+                    if (afternoonLeaveMins > 0) {
+                        leaveDetailsHtml += `<div class="flex items-center gap-2"><span class="w-1.5 h-1.5 bg-violet-400 rounded-full"></span><span>${afternoonLeaveHtml}</span></div>`;
+                    }
+                    leaveDetailsHtml += `<div class="text-[11px] text-slate-400 font-semibold mt-1">💡 請假單申報總時數：<span class="text-emerald-400 text-xs font-bold font-mono">${totalLeaveHours.toFixed(1)}</span> 小時</div>`;
+                    leaveDetailsHtml += `</div>`;
+                }
+
+                let cushionNotice = '';
+                if (totalLeaveHours > 0 && cushionMins > 0) {
+                    cushionNotice = `
+                        <div class="mt-2 text-emerald-400 font-medium bg-emerald-500/5 border border-emerald-500/10 p-2.5 rounded-xl text-[11px] leading-relaxed">
+                            💡 <b>省時小妙訣：</b>由於請假為半小時單位，請假後您今天最早其實在 <span class="text-white font-extrabold font-mono">${minsToTimeStr(earliestOffWorkMin)}</span> 就可以直接打卡退勤囉！（等於可以比預計下班時間 ${offWorkTimeStr} 還要<b>再提早 ${cushionMins} 分鐘</b>走人，一分鐘都不浪費！）
+                        </div>
+                    `;
+                }
+
+                let statusHTML = '';
+                let statusClass = '';
+
+                if (totalLeaveHours === 0) {
+                    statusClass = 'border-emerald-500/10 bg-emerald-500/5';
+                    statusHTML = `
+                        <div class="text-emerald-400 font-bold text-sm mb-1">✅ 完美工時，無需請假</div>
+                        <div class="text-xs text-slate-300 leading-relaxed">
+                            您在 ${minsToTimeStr(effectiveStartMin)} 上班、${offWorkTimeStr} 下班，已工作滿 <span class="text-emerald-400 font-bold font-mono">${minsToReadable(actualWorkMins)}</span>，符合每日規定，<strong>不需請假</strong>！
+                        </div>
+                    `;
+                } else {
+                    statusClass = 'border-indigo-500/20 bg-indigo-500/5';
+                    
+                    let deficitText = '';
+                    if (deficitMins > 0) {
+                        deficitText = `今日實際工時仍不足 <span class="text-rose-300 font-bold font-mono">${deficitMins} 分鐘</span>。`;
+                    } else {
+                        deficitText = `今日實際工時在扣除上午請假後已完全足夠。`;
+                    }
+
+                    statusHTML = `
+                        <div class="text-indigo-400 font-bold text-sm mb-1">💡 最佳請假方案建議</div>
+                        <div class="text-xs text-slate-300 leading-relaxed space-y-1">
+                            <div>${deficitText}建議依以下時段填報假單：</div>
+                            ${leaveDetailsHtml}
+                            ${cushionNotice}
+                        </div>
+                    `;
+                }
+
+                statusBox.innerHTML = statusHTML;
+                statusBox.className = `p-4 rounded-2xl border transition duration-300 ${statusClass}`;
+            }
+        }
+
+        // 初始化第一次計算
+        window.onload = calculateAll;
+    </script>
+</body>
+</html>
