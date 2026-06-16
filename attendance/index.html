@@ -133,7 +133,7 @@
             </button>
 
             <!-- 摺疊設定面板 -->
-            <div id="settings_panel" class="hidden text-left bg-slate-900 border border-slate-800 rounded-2xl p-5 mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            <div id="settings_panel" class="hidden text-left bg-slate-900 border border-slate-800 rounded-2xl p-5 mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto relative">
                 <div class="space-y-1">
                     <label class="block text-[11px] text-slate-400 font-bold uppercase">彈性上班時間</label>
                     <div class="flex items-center gap-1.5">
@@ -174,6 +174,14 @@
                         </select>
                     </div>
                 </div>
+                
+                <!-- 自動儲存反饋提示 -->
+                <div class="sm:col-span-2 text-center pt-2">
+                    <span class="text-[10px] text-emerald-400 font-semibold inline-flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                        設定已自動儲存於此瀏覽器
+                    </span>
+                </div>
             </div>
         </div>
     </div>
@@ -194,9 +202,8 @@
             document.getElementById(id).addEventListener('input', calculateAll);
         });
 
-        // 切換模式：算下班 vs 算請假
-        function setMode(mode) {
-            currentMode = mode;
+        // 智慧更新切換 UI 樣式
+        function updateTabUI(mode) {
             const tabForward = document.getElementById('tab_forward');
             const tabBackward = document.getElementById('tab_backward');
             const wrapperLeaveHours = document.getElementById('wrapper_leave_hours');
@@ -205,16 +212,20 @@
             if (mode === 'forward') {
                 tabForward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-slate-850 text-indigo-400";
                 tabBackward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
-                
                 wrapperLeaveHours.classList.remove('hidden');
                 wrapperOffWork.classList.add('hidden');
             } else {
                 tabForward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
                 tabBackward.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-slate-850 text-indigo-400";
-                
                 wrapperLeaveHours.classList.add('hidden');
                 wrapperOffWork.classList.remove('hidden');
             }
+        }
+
+        // 切換模式：算下班 vs 算請假
+        function setMode(mode) {
+            currentMode = mode;
+            updateTabUI(mode);
             calculateAll();
         }
 
@@ -249,6 +260,50 @@
             const mm = String(now.getMinutes()).padStart(2, '0');
             document.getElementById('input_off_work').value = `${hh}:${mm}`;
             calculateAll();
+        }
+
+        // 安全儲存設定至 LocalStorage (避免特殊環境沙盒限制導致崩潰)
+        function safeSaveSettings() {
+            try {
+                const settings = {
+                    cfg_work_start: document.getElementById('cfg_work_start').value,
+                    cfg_work_end: document.getElementById('cfg_work_end').value,
+                    cfg_rest_start: document.getElementById('cfg_rest_start').value,
+                    cfg_rest_end: document.getElementById('cfg_rest_end').value,
+                    cfg_off_start: document.getElementById('cfg_off_start').value,
+                    cfg_off_end: document.getElementById('cfg_off_end').value,
+                    cfg_required_hours: document.getElementById('cfg_required_hours').value,
+                    cfg_leave_unit: document.getElementById('cfg_leave_unit').value,
+                    currentMode: currentMode
+                };
+                localStorage.setItem('attendance_advisor_settings', JSON.stringify(settings));
+            } catch (e) {
+                console.warn("瀏覽器不支援 LocalStorage 或已關閉此權限，設定無法在下次開啟時自動載入。", e);
+            }
+        }
+
+        // 安全載入設定
+        function safeLoadSettings() {
+            try {
+                const saved = localStorage.getItem('attendance_advisor_settings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    if (settings.cfg_work_start) document.getElementById('cfg_work_start').value = settings.cfg_work_start;
+                    if (settings.cfg_work_end) document.getElementById('cfg_work_end').value = settings.cfg_work_end;
+                    if (settings.cfg_rest_start) document.getElementById('cfg_rest_start').value = settings.cfg_rest_start;
+                    if (settings.cfg_rest_end) document.getElementById('cfg_rest_end').value = settings.cfg_rest_end;
+                    if (settings.cfg_off_start) document.getElementById('cfg_off_start').value = settings.cfg_off_start;
+                    if (settings.cfg_off_end) document.getElementById('cfg_off_end').value = settings.cfg_off_end;
+                    if (settings.cfg_required_hours) document.getElementById('cfg_required_hours').value = settings.cfg_required_hours;
+                    if (settings.cfg_leave_unit) document.getElementById('cfg_leave_unit').value = settings.cfg_leave_unit;
+                    if (settings.currentMode) {
+                        currentMode = settings.currentMode;
+                        updateTabUI(currentMode);
+                    }
+                }
+            } catch (e) {
+                console.warn("無法存取 LocalStorage。設定值已改由隨機記憶體接管。", e);
+            }
         }
 
         // 時間轉換："HH:MM" -> 自當天 00:00 的分鐘數
@@ -709,10 +764,16 @@
                 statusBox.innerHTML = statusHTML;
                 statusBox.className = `p-4 rounded-2xl border transition duration-300 ${statusClass}`;
             }
+            
+            // 每次重新計算，自動同步將靜態自訂規格與當前模式儲存至 LocalStorage
+            safeSaveSettings();
         }
 
-        // 初始化第一次計算
-        window.onload = calculateAll;
+        // 初始化
+        window.onload = () => {
+            safeLoadSettings(); // 先載入上次的使用者自訂規則與模式
+            calculateAll();     // 執行即時計算
+        };
     </script>
 </body>
 </html>
