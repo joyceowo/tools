@@ -179,7 +179,7 @@
                 <div class="sm:col-span-2 text-center pt-2">
                     <span class="text-[10px] text-emerald-400 font-semibold inline-flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
-                        設定已自動儲存於此瀏覽器
+                        設定與輸入值已自動儲存於此瀏覽器
                     </span>
                 </div>
             </div>
@@ -262,10 +262,14 @@
             calculateAll();
         }
 
-        // 安全儲存設定至 LocalStorage (避免特殊環境沙盒限制導致崩潰)
+        // 安全儲存設定與輸入值至 LocalStorage (包含所有輸入欄位)
         function safeSaveSettings() {
             try {
                 const settings = {
+                    currentMode: currentMode,
+                    input_on_work: document.getElementById('input_on_work').value,
+                    input_leave_hours: document.getElementById('input_leave_hours').value,
+                    input_off_work: document.getElementById('input_off_work').value,
                     cfg_work_start: document.getElementById('cfg_work_start').value,
                     cfg_work_end: document.getElementById('cfg_work_end').value,
                     cfg_rest_start: document.getElementById('cfg_rest_start').value,
@@ -273,21 +277,33 @@
                     cfg_off_start: document.getElementById('cfg_off_start').value,
                     cfg_off_end: document.getElementById('cfg_off_end').value,
                     cfg_required_hours: document.getElementById('cfg_required_hours').value,
-                    cfg_leave_unit: document.getElementById('cfg_leave_unit').value,
-                    currentMode: currentMode
+                    cfg_leave_unit: document.getElementById('cfg_leave_unit').value
                 };
-                localStorage.setItem('attendance_advisor_settings', JSON.stringify(settings));
+                localStorage.setItem('attendance_advisor_settings_full', JSON.stringify(settings));
             } catch (e) {
-                console.warn("瀏覽器不支援 LocalStorage 或已關閉此權限，設定無法在下次開啟時自動載入。", e);
+                console.warn("無法存取 LocalStorage，設定無法在下次開啟時自動載入。", e);
             }
         }
 
-        // 安全載入設定
+        // 安全載入設定與輸入值
         function safeLoadSettings() {
             try {
-                const saved = localStorage.getItem('attendance_advisor_settings');
+                const saved = localStorage.getItem('attendance_advisor_settings_full');
                 if (saved) {
                     const settings = JSON.parse(saved);
+                    
+                    // 載入模式
+                    if (settings.currentMode) {
+                        currentMode = settings.currentMode;
+                        updateTabUI(currentMode);
+                    }
+                    
+                    // 載入使用者輸入數值
+                    if (settings.input_on_work) document.getElementById('input_on_work').value = settings.input_on_work;
+                    if (settings.input_leave_hours) document.getElementById('input_leave_hours').value = settings.input_leave_hours;
+                    if (settings.input_off_work) document.getElementById('input_off_work').value = settings.input_off_work;
+                    
+                    // 載入公司規則設定
                     if (settings.cfg_work_start) document.getElementById('cfg_work_start').value = settings.cfg_work_start;
                     if (settings.cfg_work_end) document.getElementById('cfg_work_end').value = settings.cfg_work_end;
                     if (settings.cfg_rest_start) document.getElementById('cfg_rest_start').value = settings.cfg_rest_start;
@@ -296,13 +312,9 @@
                     if (settings.cfg_off_end) document.getElementById('cfg_off_end').value = settings.cfg_off_end;
                     if (settings.cfg_required_hours) document.getElementById('cfg_required_hours').value = settings.cfg_required_hours;
                     if (settings.cfg_leave_unit) document.getElementById('cfg_leave_unit').value = settings.cfg_leave_unit;
-                    if (settings.currentMode) {
-                        currentMode = settings.currentMode;
-                        updateTabUI(currentMode);
-                    }
                 }
             } catch (e) {
-                console.warn("無法存取 LocalStorage。設定值已改由隨機記憶體接管。", e);
+                console.warn("無法讀取 LocalStorage。", e);
             }
         }
 
@@ -771,7 +783,7 @@
 
         // 初始化
         window.onload = () => {
-            safeLoadSettings(); // 先載入上次的使用者自訂規則與模式
+            safeLoadSettings(); // 先載入上次的使用者自訂規則、輸入數值與模式
             calculateAll();     // 執行即時計算
         };
     </script>
