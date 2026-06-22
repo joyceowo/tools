@@ -262,7 +262,7 @@
             calculateAll();
         }
 
-        // 安全儲存設定與輸入值至 LocalStorage (包含模式、時間等所有數值)
+        // 安全儲存設定與輸入值至 LocalStorage
         function safeSaveSettings() {
             try {
                 const settings = {
@@ -291,19 +291,13 @@
                 const saved = localStorage.getItem('attendance_advisor_settings_full');
                 if (saved) {
                     const settings = JSON.parse(saved);
-                    
-                    // 載入模式
                     if (settings.currentMode) {
                         currentMode = settings.currentMode;
                         updateTabUI(currentMode);
                     }
-                    
-                    // 載入使用者輸入數值
                     if (settings.input_on_work) document.getElementById('input_on_work').value = settings.input_on_work;
                     if (settings.input_leave_hours) document.getElementById('input_leave_hours').value = settings.input_leave_hours;
                     if (settings.input_off_work) document.getElementById('input_off_work').value = settings.input_off_work;
-                    
-                    // 載入公司規則設定
                     if (settings.cfg_work_start) document.getElementById('cfg_work_start').value = settings.cfg_work_start;
                     if (settings.cfg_work_end) document.getElementById('cfg_work_end').value = settings.cfg_work_end;
                     if (settings.cfg_rest_start) document.getElementById('cfg_rest_start').value = settings.cfg_rest_start;
@@ -342,14 +336,11 @@
         // 輔助計算：扣除中午休息，得出實際工作的總分鐘數
         function calcActualWorkMins(startMin, endMin, restStart, restEnd) {
             if (endMin <= startMin) return 0;
-            
             let total = 0;
-            // 1. 上半天工作時間 (午休前)
             if (startMin < restStart) {
                 const morningEnd = Math.min(endMin, restStart);
                 total += (morningEnd - startMin);
             }
-            // 2. 下半天工作時間 (午休後)
             if (endMin > restEnd) {
                 const afternoonStart = Math.max(startMin, restEnd);
                 total += (endMin - afternoonStart);
@@ -497,7 +488,7 @@
                 let minMorningLeaveMins = isLate ? Math.ceil(latenessMins / cfgLeaveUnit) * cfgLeaveUnit : 0;
                 let minMorningLeaveHours = minMorningLeaveMins / 60;
 
-                // 【核心改進】：若遲到且輸入請假時數不足，計算下班時間時自動採用「建議的最低請假時數」進行預估推算
+                // 核心保護：若請假量不足，自動帶入「最少需請假時數」進行精準預估，防止畫面停留在錯誤的時間
                 const calcLeaveHours = isLate ? Math.max(leaveHours, minMorningLeaveHours) : leaveHours;
                 const totalLeaveMins = calcLeaveHours * 60;
                 const remainingWorkMin = (cfgRequiredHours - calcLeaveHours) * 60;
@@ -513,15 +504,24 @@
                 let afternoonLeaveMins = 0;
                 let morningRangeStr = '';
 
-                // 智慧推算請假區間 (用最划算的對齊打卡時間)
-                const optimalMerge = getOptimalLeaveInterval(onWorkMin, totalLeaveMins, cfgWorkStart, cfgRestStart, cfgRestEnd);
+                // 計算早上在不與實際打卡時間（onWorkMin）重疊的前提下，最大能請假的時數上限
+                let maxMorningLeaveMins = 0;
+                while (true) {
+                    let nextEnd = getLeaveTimeEnd(cfgWorkStart, maxMorningLeaveMins + cfgLeaveUnit, cfgRestStart, cfgRestEnd);
+                    if (nextEnd <= onWorkMin) {
+                        maxMorningLeaveMins += cfgLeaveUnit;
+                    } else {
+                        break;
+                    }
+                }
 
                 if (isLate) {
                     if (leaveHours < minMorningLeaveHours) {
+                        // 時數不足警告：以最划算的對齊方案展示申報建議
                         const optimalSuggestion = getOptimalLeaveInterval(onWorkMin, minMorningLeaveMins, cfgWorkStart, cfgRestStart, cfgRestEnd);
                         const suggestedIntervalText = optimalSuggestion ? optimalSuggestion.formattedText : `${minsToTimeStr(cfgWorkEnd)} ~ ${minsToTimeStr(getLeaveTimeEnd(cfgWorkEnd, minMorningLeaveMins, cfgRestStart, cfgRestEnd))}`;
 
-                        // 計算若「依照建議請假」時的下班時間與明細
+                        // 以推薦時數算出預估下班時間
                         let tempEffectiveStart = optimalSuggestion ? optimalSuggestion.endMin : getLeaveTimeEnd(cfgWorkStart, minMorningLeaveMins, cfgRestStart, cfgRestEnd);
                         let tempTargetWorkMin = (cfgRequiredHours - minMorningLeaveHours) * 60;
                         let tempCurrentMin = tempEffectiveStart;
@@ -558,33 +558,29 @@
                         statusHTML = `
                             <div class="text-rose-400 font-bold text-sm mb-1">⚠️ 請假時數不足以覆蓋遲到</div>
                             <div class="text-xs text-slate-300 leading-relaxed">
-                                您於 <span class="text-rose-300 font-bold">${onWorkTimeStr}</span> 打卡，已超過彈性時間截止點 ${minsToTimeStr(cfgWorkEnd)}（實質遲到工時 ${latenessMins} 分鐘）。<br>
-                                依規定，您<b>最少必須請假 ${minMorningLeaveHours.toFixed(1)} 小時</b>。<br>
+                                您於 <span class="text-rose-300 font-bold">${onWorkTimeStr}</span> 打卡已超出彈性截止點（實質遲到工時 ${latenessMins} 分鐘）。<br>
+                                依規定您<b>最少必須請假 ${minMorningLeaveHours.toFixed(1)} 小時</b>。<br>
                                 💡 最划算的申報區間為：${suggestedIntervalText}。<br>
-                                <span class="text-indigo-300 font-semibold">系統已自動為您預估<b>依此申報下</b>的下班時間與需補滿時數。請點選左側將預計請假時數調整為至少 <b>${minMorningLeaveHours.toFixed(1)}</b> 小時。</span>
+                                <span class="text-indigo-300 font-semibold">系統已自動為您預估<b>依此申報下</b>的下班時間與需補滿時數。請點選左側調整請假時數至至少 <b>${minMorningLeaveHours.toFixed(1)}</b> 小時。</span>
                             </div>
                         `;
                     } else {
-                        // 請假時數已補足
-                        if (optimalMerge && optimalMerge.endMin >= onWorkMin) {
+                        // 時數已足夠，實施「防重疊自動拆分」
+                        if (totalLeaveMins <= maxMorningLeaveMins) {
+                            // 完美合併至早上單筆假單
                             morningLeaveMins = totalLeaveMins;
                             afternoonLeaveMins = 0;
-                            
-                            let lunchNoticeStr = "";
-                            if (cfgWorkStart < cfgRestStart && optimalMerge.endMin > cfgRestEnd) {
-                                lunchNoticeStr = ` (含午休 ${minsToTimeStr(cfgRestStart)} ~ ${minsToTimeStr(cfgRestEnd)}，實質扣除)`;
-                            }
-                            morningRangeStr = `${minsToTimeStr(optimalMerge.startMin)} ~ ${minsToTimeStr(optimalMerge.endMin)}${lunchNoticeStr}`;
-                            effectiveStartMin = optimalMerge.endMin;
+                            const optimalMerge = getOptimalLeaveInterval(onWorkMin, totalLeaveMins, cfgWorkStart, cfgRestStart, cfgRestEnd);
+                            morningRangeStr = optimalMerge ? `${minsToTimeStr(optimalMerge.startMin)} ~ ${minsToTimeStr(optimalMerge.endMin)}` : `${minsToTimeStr(cfgWorkStart)} ~ ${minsToTimeStr(getLeaveTimeEnd(cfgWorkStart, totalLeaveMins, cfgRestStart, cfgRestEnd))}`;
+                            effectiveStartMin = optimalMerge ? optimalMerge.endMin : getLeaveTimeEnd(cfgWorkStart, totalLeaveMins, cfgRestStart, cfgRestEnd);
                         } else {
-                            const maxMorningWorkMins = calcActualWorkMins(cfgWorkStart, onWorkMin, cfgRestStart, cfgRestEnd);
-                            morningLeaveMins = Math.floor(maxMorningWorkMins / cfgLeaveUnit) * cfgLeaveUnit;
-                            if (morningLeaveMins > totalLeaveMins) morningLeaveMins = totalLeaveMins;
+                            // 拆分為早上 (上限 maxMorningLeaveMins) + 下午兩段假
+                            morningLeaveMins = maxMorningLeaveMins;
                             afternoonLeaveMins = totalLeaveMins - morningLeaveMins;
 
                             const morningStartMin = getLeaveTimeStart(onWorkMin, morningLeaveMins, cfgRestStart, cfgRestEnd);
                             morningRangeStr = `${minsToTimeStr(morningStartMin)} ~ ${minsToTimeStr(onWorkMin)}`;
-                            effectiveStartMin = onWorkMin;
+                            effectiveStartMin = onWorkMin; // 上午請假不夠，起算點為實際打卡點
                         }
 
                         currentMin = effectiveStartMin;
@@ -620,6 +616,7 @@
                         leaveRangesHtml = `👉 <b>建議請假申報：</b><span class="text-amber-400 font-bold font-mono">${morningRangeStr}</span>${lunchNoticeStr} (共 ${calcLeaveHours.toFixed(1)} 小時)`;
                         
                         if (afternoonLeaveMins > 0) {
+                            // 下午提早下班區間
                             const normalOffWorkMin = getEarliestOffWorkMin(onWorkMin, morningLeaveMins / 60, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
                             leaveRangesHtml = `👉 <b>建議請假申報：</b><br>
                                 • 早上：<span class="text-amber-400 font-bold font-mono">${morningRangeStr}</span> (${(morningLeaveMins/60).toFixed(1)}小時)<br>
@@ -637,7 +634,7 @@
                         `;
                     }
                 } else {
-                    // 沒遲到，請假視為提早下班
+                    // 正常準時，請假視為提早下班
                     const normalOffWorkMin = getEarliestOffWorkMin(onWorkMin, 0, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
                     currentMin = getEarliestOffWorkMin(onWorkMin, leaveHours, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
 
@@ -701,7 +698,6 @@
                 const offWorkTimeStr = document.getElementById('input_off_work').value;
                 const offWorkMin = timeToMins(offWorkTimeStr);
 
-                // 1. 計算實際工時與工時缺口
                 const actualWorkMins = calcActualWorkMins(onWorkMin, offWorkMin, cfgRestStart, cfgRestEnd);
                 const totalRequiredWorkMins = cfgRequiredHours * 60;
                 const deficitMins = totalRequiredWorkMins - actualWorkMins;
@@ -712,33 +708,28 @@
                 let afternoonLeaveHtml = '';
                 let singleLeaveEndMin = 0;
 
-                // 判定是否遲到
                 const isLate = onWorkMin > cfgWorkEnd;
 
                 if (deficitMins > 0) {
                     const totalLeaveMins = Math.ceil(deficitMins / cfgLeaveUnit) * cfgLeaveUnit;
-                    singleLeaveEndMin = getLeaveTimeEnd(cfgWorkStart, totalLeaveMins, cfgRestStart, cfgRestEnd);
-
-                    if (singleLeaveEndMin <= offWorkMin) {
-                        // 【智慧合併核心】：完美合併成功！下午不需要再請假了
+                    
+                    // 利用最划算的對齊演算法，判斷是否能在單筆申報中完美合併至早上
+                    const optimalMerge = getOptimalLeaveInterval(onWorkMin, totalLeaveMins, cfgWorkStart, cfgRestStart, cfgRestEnd);
+                    
+                    if (optimalMerge && optimalMerge.endMin <= offWorkMin) {
                         morningLeaveMins = totalLeaveMins;
                         afternoonLeaveMins = 0;
-                        const morningLeaveStartStr = minsToTimeStr(cfgWorkStart);
-                        const morningLeaveEndStr = minsToTimeStr(singleLeaveEndMin);
                         
-                        // 檢查是否跨越午休，如果是，提示含午休
                         let lunchNoticeStr = "";
-                        const optimalMerge = getOptimalLeaveInterval(onWorkMin, totalLeaveMins, cfgWorkStart, cfgRestStart, cfgRestEnd);
-                        if (optimalMerge) {
-                            if (optimalMerge.startMin < cfgRestStart && optimalMerge.endMin > cfgRestEnd) {
-                                lunchNoticeStr = ` (含午休 ${minsToTimeStr(cfgRestStart)} ~ ${minsToTimeStr(cfgRestEnd)}，實質扣除)`;
-                            }
-                            morningLeaveHtml = `• 早上合併請假：${optimalMerge.formattedText}${lunchNoticeStr}`;
-                            singleLeaveEndMin = optimalMerge.endMin;
+                        if (optimalMerge.startMin < cfgRestStart && optimalMerge.endMin > cfgRestEnd) {
+                            lunchNoticeStr = ` (含午休 ${minsToTimeStr(cfgRestStart)} ~ ${minsToTimeStr(cfgRestEnd)}，實質扣除)`;
                         }
+                        morningLeaveHtml = `• 早上合併請假：${optimalMerge.formattedText}${lunchNoticeStr}`;
+                        singleLeaveEndMin = optimalMerge.endMin;
                     } else {
-                        // 無法完全合併到早上，早上請假最大化 (採向下取整，精準防止請假時間超過打卡時間)
+                        // 必須拆分
                         if (isLate) {
+                            // 補全早上的最大安全請假限制 (避免請假時間與打卡時間重疊)
                             const maxMorningWorkMins = calcActualWorkMins(cfgWorkStart, onWorkMin, cfgRestStart, cfgRestEnd);
                             let maxMorningLeaveMins = Math.floor(maxMorningWorkMins / cfgLeaveUnit) * cfgLeaveUnit;
                             if (maxMorningLeaveMins > totalLeaveMins) maxMorningLeaveMins = totalLeaveMins;
@@ -755,13 +746,11 @@
                                 morningLeaveHtml = `• 早上遲到請假：<span class="text-amber-400 font-bold font-mono">${minsToTimeStr(morningStartMin)} ~ ${minsToTimeStr(onWorkMin)}</span> (${(morningLeaveMins/60).toFixed(1)}小時)`;
                             }
 
-                            // 下午請假區間
                             if (afternoonLeaveMins > 0) {
                                 const afternoonLeaveEnd = getLeaveTimeEnd(offWorkMin, afternoonLeaveMins, cfgRestStart, cfgRestEnd);
                                 afternoonLeaveHtml = `• 下午提早下班請假：<span class="text-amber-400 font-bold font-mono">${offWorkTimeStr} ~ ${minsToTimeStr(afternoonLeaveEnd)}</span> (${(afternoonLeaveMins/60).toFixed(1)}小時)`;
                             }
                         } else {
-                            // 沒遲到，請假全算下午
                             afternoonLeaveMins = totalLeaveMins;
                             const afternoonLeaveEnd = getLeaveTimeEnd(offWorkMin, afternoonLeaveMins, cfgRestStart, cfgRestEnd);
                             afternoonLeaveHtml = `• 下午提早下班請假：<span class="text-amber-400 font-bold font-mono">${offWorkTimeStr} ~ ${minsToTimeStr(afternoonLeaveEnd)}</span> (${(afternoonLeaveMins/60).toFixed(1)}小時)`;
@@ -770,12 +759,9 @@
                 }
 
                 const totalLeaveHours = (morningLeaveMins + afternoonLeaveMins) / 60;
-
-                // 4. 計算省時小祕訣
                 const earliestOffWorkMin = getEarliestOffWorkMin(onWorkMin, totalLeaveHours, cfgWorkStart, cfgRestStart, cfgRestEnd, cfgRequiredHours);
                 const cushionMins = offWorkMin - earliestOffWorkMin;
 
-                // 智慧判定起算打卡時間
                 const effectiveStartMin = isLate && morningLeaveMins > 0 
                     ? (singleLeaveEndMin && singleLeaveEndMin <= offWorkMin ? cfgWorkStart : getLeaveTimeStart(onWorkMin, morningLeaveMins, cfgRestStart, cfgRestEnd))
                     : (onWorkMin < cfgWorkStart ? cfgWorkStart : onWorkMin);
@@ -802,7 +788,6 @@
                     resOffPeriodTag.className = 'text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20';
                 }
 
-                // 建立乾淨直覺的請假區間清單 HTML
                 let leaveDetailsHtml = '';
                 if (morningLeaveMins > 0 || afternoonLeaveMins > 0) {
                     leaveDetailsHtml += `<div class="my-2 p-3 bg-slate-950/50 border border-slate-800 rounded-xl space-y-1.5">`;
@@ -860,14 +845,12 @@
                 statusBox.className = `p-4 rounded-2xl border transition duration-300 ${statusClass}`;
             }
             
-            // 每次重新計算，自動同步將所有輸入值與自訂規格儲存至 LocalStorage
             safeSaveSettings();
         }
 
-        // 初始化
         window.onload = () => {
-            safeLoadSettings(); // 載入上次的所有使用者自訂規格、打卡時間與模式
-            calculateAll();     // 執行即時計算
+            safeLoadSettings();
+            calculateAll();
         };
     </script>
 </body>
