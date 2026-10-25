@@ -1,0 +1,58 @@
+/* Compact records and pagination reachable while reading. */
+#transactions .transactions-panel{overflow:visible}
+#transactions .filters{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;padding:12px}
+#transactions .filters label{min-width:0}
+#transactions .filters input,#transactions .filters select{width:100%;min-height:44px;font-size:16px}
+#transactions .search-box{grid-column:1/-1;grid-row:2;min-width:0}
+#transactions .search-box input{padding-right:52px}
+#transactions #clear-filters{grid-column:2;grid-row:2;justify-self:end;align-self:center;min-width:44px;min-height:44px;margin-right:3px;padding:6px;color:var(--muted);z-index:1}
+#transactions .table-footer{padding:6px 12px;border-block:1px solid var(--line);background:white;border-radius:0;min-height:56px}
+#transactions .pagination{gap:10px}
+#transactions .pagination button{min-height:44px;min-width:44px;color:var(--ink)}
+#transactions .record-store{color:var(--muted);margin:2px 0 0;font-size:13px;font-weight:400;overflow-wrap:anywhere}
+#transactions .amount-cell{color:var(--ink);font-weight:600;white-space:nowrap}
+#transactions .type-tag{color:var(--green);background:none;padding:0;font-size:13px;font-weight:600}
+#transactions .type-tag.expense-tag{color:var(--peach)}
+#transactions .record-actions{display:flex;gap:4px}
+#transactions .row-action{color:var(--ink);background:white;border:1px solid var(--line);font-size:14px;min-width:44px;min-height:44px;padding:6px}
+#transactions .record-note summary{display:flex;align-items:center;min-height:44px;color:var(--muted);list-style:none;cursor:pointer}
+#transactions .record-note summary::-webkit-details-marker{display:none}
+#transactions .record-note summary>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#transactions .record-note[open] summary>span{display:none}
+#transactions .record-note[open] summary::after{content:'收合備註'}
+#transactions .record-full-note{margin:0 0 8px;font-size:14px;line-height:1.6;font-weight:400;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink)}
+#transactions :focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+@media(min-width:761px){
+ #transactions .filters{grid-template-columns:minmax(130px,1fr) minmax(130px,1fr) minmax(200px,2fr);padding:14px 24px}
+ #transactions .search-box{grid-column:3;grid-row:1}
+ #transactions #clear-filters{grid-column:3;grid-row:1}
+ #transactions .table-footer{padding-inline:24px}
+ #transactions .record-full-note{max-width:300px}
+}
+@media(max-width:760px){
+ .transactions-page #scope-panel{padding:8px 10px;margin-bottom:8px}
+ .transactions-page #scope-panel .controls{gap:8px}
+ .transactions-page #scope-panel .store-picker-field,.transactions-page #scope-panel .controls>label{gap:0}
+ .transactions-page #scope-panel .scope-field-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ .transactions-page #scope-panel #store-scope,.transactions-page #scope-panel #range-preset{min-height:44px;padding-block:8px}
+ #transactions .filters{padding:6px 12px 4px}
+ #transactions .table-footer{position:sticky;top:0;z-index:2}
+ #transactions .table-scroll{padding:0 12px;overflow:visible}
+ #records-body tr{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 6px;padding:6px 0;border-top:0;border-bottom:1px solid var(--line)}
+ #records-body td{padding:0;border:0;min-width:0}
+ #records-body td:first-child{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;font-size:13px;line-height:1.5}
+ #records-body .record-store{display:inline;margin:0;font-size:13px;line-height:1.5}
+ #records-body td:nth-child(2),#transactions .category-cell,#transactions .category-name,#transactions .record-note{display:contents}
+ #transactions .record-category{grid-column:2;grid-row:1;font-size:16px;font-weight:600;line-height:1.4;align-self:center;overflow-wrap:anywhere}
+ #transactions .category-note{grid-column:1/-1;grid-row:3;min-width:0;max-width:none;margin:0;padding-right:100px;font-size:13px;line-height:1.5;font-weight:400}
+ #transactions .record-full-note{grid-column:1/-1;grid-row:4;margin:0;padding:4px 0 6px}
+ #transactions .record-note:not([open])>.record-full-note{display:none}
+ #records-body td.record-type{grid-column:1;grid-row:1;align-self:center;white-space:nowrap}
+ #records-body td:nth-child(4){grid-column:3;grid-row:1;align-self:center;font-size:16px;line-height:1.4;max-width:140px}
+ #records-body td:last-child{grid-column:1/-1;grid-row:3;display:flex;justify-content:flex-end;align-items:center;white-space:normal;pointer-events:none}
+ #transactions .record-actions{pointer-events:auto;flex:none}
+ #transactions .record-actions .row-action{flex:none;min-width:44px;min-height:44px}
+ #records-body tr:has(.empty-cell){display:block}
+ #records-body .empty-cell{padding:24px 12px!important}
+}
+@media(forced-colors:active){#transactions .table-footer{background:Canvas}#transactions .type-tag,#transactions .type-tag.expense-tag{color:CanvasText}}

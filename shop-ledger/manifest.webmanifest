@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "日日果凍 · 收支小帳本",
+  "short_name": "日日果凍",
+  "description": "多門市收支記帳與經營報表",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f3f8",
+  "theme_color": "#f5f3f8",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

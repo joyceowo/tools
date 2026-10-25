@@ -1,0 +1,9 @@
+/* A single secondary action; browser-specific help appears only after a click. */
+.pwa-install{margin-top:12px;min-height:48px;max-width:100%;white-space:normal}
+#pwa-dialog{max-width:420px}
+#pwa-dialog h2{font-size:21px;margin:0 0 12px}
+#pwa-dialog .dialog-buttons{justify-content:flex-end;margin-top:20px}
+.pwa-import{margin-bottom:18px}
+.pwa-import summary{min-height:44px;align-content:center;cursor:pointer;color:var(--purple-dark)}
+.pwa-import textarea{width:100%;min-height:96px;font-size:16px;overflow-wrap:anywhere}
+@media(display-mode:standalone){.app-header{padding-top:calc(20px + env(safe-area-inset-top))}#app-main{padding-bottom:calc(110px + env(safe-area-inset-bottom))}.save-button{bottom:calc(92px + env(safe-area-inset-bottom))}}

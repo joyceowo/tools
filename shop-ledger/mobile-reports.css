@@ -1,0 +1,448 @@
+/* Each report has its own focused screen; shared filters open only when needed. */
+.report-menu-intro{margin:0 0 18px;color:var(--muted);font-size:15px;line-height:1.8}
+.report-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.report-picker button{display:grid;grid-template-columns:48px minmax(0,1fr) 20px;gap:14px;align-items:center;text-align:left;min-height:124px;padding:20px;border:1px solid #d5c9e1;border-radius:16px;background:white;color:var(--ink)}
+.report-picker button:hover{border-color:var(--purple);background:#faf7ff}
+.report-picker button>span:last-child{color:var(--purple);font-size:22px}
+.report-picker strong{display:block;font-size:19px;line-height:1.5}
+.report-picker small{display:block;font-size:14px;color:var(--muted);line-height:1.7;margin-top:5px}
+.report-menu-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:13px;background:#eee6f8;color:var(--purple-dark);font-size:30px;line-height:1}
+.report-calendar-link{display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:16px 4px;margin-top:14px;font-size:14px;color:var(--purple-dark)}
+.report-detail-header{margin-bottom:8px}
+#report-back{padding:0 4px;color:var(--purple);font-size:15px;text-align:left}
+#report-title{font-size:24px;margin:8px 0 0;line-height:1.5}
+#report-title:focus{outline:none}
+.report-filters{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:16px}
+.report-filters>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;list-style:none;cursor:pointer;font-size:13px;color:var(--muted);min-height:76px}
+.report-filters>summary::-webkit-details-marker{display:none}
+#report-filter-label{display:block;color:var(--ink);font-size:14px;line-height:1.7;overflow-wrap:anywhere;margin-top:2px}
+.filter-adjust{color:var(--purple);font-size:14px;white-space:nowrap}
+.report-filters[open]>summary{border-bottom:1px solid var(--line)}
+#report-filter-slot #scope-panel{border:0;border-radius:0;padding:16px;margin:0;background:none}
+#report-year-settings{padding:0 16px 16px;align-items:start}
+#report-store-note{padding:0 16px 8px;margin-top:0}
+#report-workspace .reports-panel{padding:18px 0 20px}
+#report-summary{grid-template-columns:minmax(0,1fr);gap:0;margin:0 24px 20px;border-bottom:1px solid var(--line)}
+#report-summary .report-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 0;border:0;border-radius:0;background:none;grid-column:auto;grid-row:auto}
+#report-summary .report-total>span{font-size:14px}
+#report-summary .report-total>strong{font-size:22px;margin:0;text-align:right;line-height:1.5}
+#report-summary .report-total.balance>span,#report-summary .report-total.balance>strong{color:var(--purple-dark)}
+#report-workspace .report-primary-controls{margin:0 0 16px}
+#report-workspace .report-primary-controls>label{flex:1;max-width:320px;font-size:14px}
+#report-workspace .report-help{font-size:14px;line-height:1.8}
+.period-row{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;padding:0 14px}
+.period-row>summary{display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;min-height:78px;padding:12px 0}
+.period-row>summary>strong{font-size:15px;overflow-wrap:anywhere}
+.period-row>summary>span{margin-left:auto;text-align:right;flex-shrink:0}
+.period-row>summary small{display:block;color:var(--muted);font-size:12px}
+.period-row>summary b{font-size:18px;color:var(--purple-dark);overflow-wrap:anywhere}
+.period-row>summary::after{content:'⌄';color:var(--purple);margin-left:2px}
+.period-row[open]>summary::after{content:'⌃'}
+.period-row[open]>summary{border-bottom:1px solid var(--line)}
+.period-row dl{margin:14px 0 6px;font-size:14px}
+.period-row dl>div{display:flex;justify-content:space-between;gap:10px;margin:7px 0}
+.period-row dt{color:var(--muted)}.period-row dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.period-row .text-button{padding-left:0;font-size:14px;text-align:left}
+#report-workspace .secondary-report{margin:18px 0;padding:14px 0 0}
+#report-workspace .secondary-report>summary{min-height:44px;font-size:15px}
+#report-workspace .report-footnote{font-size:13px;line-height:1.8;margin-bottom:0}
+#report-years .segmented{margin:0 0 18px}
+#report-years .segmented button{font-size:15px}
+#comparison-cards .comparison-card{padding:16px;margin:12px 0}
+.comparison-card>header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.comparison-card>header h3{font-size:15px;margin:0;color:var(--muted);font-weight:500}
+.comparison-card>header strong{font-size:22px;color:var(--purple-dark);overflow-wrap:anywhere}
+#comparison-cards .comparison-card>div{font-size:14px;margin:10px 0 0}
+#comparison-cards .comparison-card p{font-size:14px;margin:12px 0 0}
+#report-years .years-chart-legend{font-size:13px;margin:12px 0;gap:12px}
+#report-years .year-chart-readout{margin:14px 0 0}
+#report-years .year-chart-values{grid-template-columns:minmax(0,1fr);gap:8px}
+#report-years .year-chart-values>div{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+#report-years .year-chart-values span{font-size:14px}
+#report-years .year-chart-values strong{font-size:18px;margin:0;text-align:right}
+#report-years .year-chart-instructions{font-size:13px;line-height:1.7}
+#report-years .year-chart-detail{margin-top:8px}
+#report-workspace .negative-amount{color:var(--peach)}
+#monthly-year-settings{padding:0 16px 16px}
+#total-view{margin:0 0 12px}
+#total-view button{font-size:15px}
+#report-workspace #monthly-period-note{margin:0 0 8px;font-size:13px;line-height:1.6}
+.monthly-mode-control{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:3px;border:1px solid var(--line);border-radius:12px;background:#f5f2f8;margin-bottom:12px}
+.monthly-mode-control button{min-height:44px;padding:8px 4px;border:0;border-radius:9px;background:none;color:var(--ink);font-size:14px;line-height:1.4}
+.monthly-mode-control button[aria-pressed="true"]{background:var(--purple);color:white;font-weight:600}
+.monthly-mode-note{font-size:13px;line-height:1.7;color:var(--muted);margin:4px 0 8px}
+.monthly-trend-summary{font-size:14px;font-weight:600;color:var(--ink);margin:0 0 10px;line-height:1.7}
+.monthly-legend{display:flex;align-items:center;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--ink);margin-bottom:4px}
+.monthly-legend>span{display:flex;align-items:center;gap:5px;color:var(--ink)}
+.monthly-legend i{font-style:normal;font-size:11px;line-height:1;width:12px;text-align:center}
+.monthly-legend .income i{color:var(--green)}.monthly-legend .expense i{color:var(--peach)}.monthly-legend .balance i{color:var(--purple)}
+.monthly-legend .balance{background:none;padding:0}
+.monthly-legend small{font-size:12px;color:var(--muted);margin-left:auto}
+.monthly-empty{font-size:14px;color:var(--muted);line-height:1.8;border:1px dashed var(--line);border-radius:10px;padding:12px;margin:0 0 14px}
+.monthly-interactive-chart{display:block;width:100%;touch-action:pan-y;user-select:none;cursor:crosshair}
+.monthly-interactive-chart:focus-visible{outline:2px solid var(--purple);outline-offset:3px;border-radius:8px}
+.monthly-interactive-chart:focus:not(:focus-visible){outline:none}
+.monthly-readout{padding:10px 0 0;margin-top:6px;border-top:1px solid var(--line)}
+.monthly-nav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px}
+.monthly-nav h3{font-size:18px;text-align:center;margin:0}
+.monthly-nav button{min-height:44px;border:1px solid var(--line);background:white;border-radius:10px;color:var(--purple);font-size:20px}
+.monthly-status{font-size:13px;color:var(--muted);margin:8px 0;line-height:1.6;text-align:center}
+#monthly-chart .monthly-comparison{display:table;width:100%;table-layout:fixed;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.55}
+#monthly-chart .monthly-comparison thead{display:table-header-group;position:static;width:auto;height:auto;overflow:visible;clip-path:none}
+#monthly-chart .monthly-comparison tbody{display:table-row-group;width:auto}
+.monthly-comparison .metric-col{width:14%}.monthly-comparison .amount-col{width:30%}.monthly-comparison .growth-col{width:26%}
+#monthly-chart .monthly-comparison th,#monthly-chart .monthly-comparison td{padding:10px 3px;text-align:right;border:0;border-bottom:1px solid var(--line);overflow-wrap:anywhere;background:none}
+#monthly-chart .monthly-comparison th:first-child{padding-left:0;text-align:left;color:var(--ink);font-weight:600;white-space:nowrap}
+#monthly-chart .monthly-comparison th:last-child,#monthly-chart .monthly-comparison td:last-child{padding-right:0;white-space:normal}
+#monthly-chart .monthly-comparison thead th{font-size:13px;color:var(--muted);font-weight:500;padding-top:6px;padding-bottom:7px}
+#monthly-chart .monthly-comparison td{color:var(--muted);font-family:Arial,"Noto Sans TC",sans-serif}
+#monthly-chart .monthly-comparison .monthly-current{font-weight:700;color:var(--ink)}
+#monthly-chart .monthly-growth{font-size:14px;font-weight:600}
+#monthly-chart .monthly-growth.neutral{color:var(--muted)}#monthly-chart .monthly-growth.favorable{color:var(--green)}#monthly-chart .monthly-growth.unfavorable,#monthly-chart .monthly-comparison .monthly-current.negative-amount{color:var(--peach)}
+.monthly-reasons{font-size:13px;color:var(--muted);line-height:1.7;margin:8px 0 0}
+.monthly-extra{border-bottom:1px solid var(--line);margin:0}
+.monthly-extra>summary{min-height:48px;display:flex;align-items:center;justify-content:space-between;font-size:14px;color:var(--purple);list-style:none;cursor:pointer;padding:10px 0;gap:12px}
+.monthly-extra>summary::-webkit-details-marker{display:none}.monthly-extra>summary::after{content:'⌄'}.monthly-extra[open]>summary::after{content:'⌃'}
+.monthly-details dl{margin:6px 0 12px}.monthly-details dl>div{display:flex;justify-content:space-between;gap:10px;font-size:14px;margin:8px 0}
+.monthly-details dt{color:var(--muted)}.monthly-details dd{margin:0;text-align:right;font-weight:600;overflow-wrap:anywhere}
+.monthly-details p,.monthly-peaks small{font-size:13px;color:var(--muted);line-height:1.7}
+.monthly-details .text-button{font-size:14px;padding-left:0;text-align:left;min-height:44px}
+.monthly-peaks{padding-bottom:12px}
+.monthly-peaks>div{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:14px;margin:8px 0}
+.monthly-peaks>div>span{color:var(--muted)}.monthly-peaks>div>strong{text-align:right;overflow-wrap:anywhere}.monthly-peaks>div>small{grid-column:1/-1;text-align:right}
+#monthly-summary .report-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:0;border-radius:0;background:none;padding:10px 0}
+#monthly-summary .report-total>strong{font-size:20px;margin:0;text-align:right;color:var(--ink)}
+#monthly-summary .report-total>span{font-size:14px;color:var(--muted)}
+#monthly-summary .income>strong{color:var(--green)}#monthly-summary .expense>strong{color:var(--peach)}#monthly-summary .balance>strong{color:var(--purple-dark)}
+#total-list #report-summary{margin-inline:0}
+@media(max-width:760px){
+ #report-workspace:has(#report-rhythm:not([hidden]) #total-monthly:not([hidden]))>.report-filters>summary{min-height:48px;padding:10px 12px}
+ #report-workspace:has(#report-rhythm:not([hidden]) #total-monthly:not([hidden]))>.report-filters>summary>span:first-child{font-size:0}
+ #report-workspace:has(#report-rhythm:not([hidden]) #total-monthly:not([hidden])) #report-filter-label{font-size:14px;margin:0}
+}
+@media(max-width:360px){
+ #monthly-chart .monthly-comparison{font-size:14px}
+ .monthly-comparison .metric-col{width:12%}.monthly-comparison .amount-col{width:32%}.monthly-comparison .growth-col{width:24%}
+ #monthly-chart .monthly-comparison tbody th{font-size:13px}
+ #monthly-chart .monthly-comparison th,#monthly-chart .monthly-comparison td{padding-inline:2px}
+ #monthly-chart .monthly-growth{font-size:13px}
+ .monthly-legend{gap:5px 12px}.monthly-legend small{margin-left:0}
+}
+@media(max-width:760px){
+ .report-picker{grid-template-columns:minmax(0,1fr);gap:12px}
+ .report-picker button{padding:16px 14px;min-height:104px;gap:12px;grid-template-columns:42px minmax(0,1fr) 16px}
+ .report-menu-icon{width:42px;height:42px;font-size:28px;border-radius:11px}
+ .report-picker strong{font-size:18px}.report-picker small{font-size:14px}
+ .report-detail-header{margin-bottom:8px}#report-title{font-size:23px;margin-top:6px}
+ #report-workspace .reports-panel{padding-top:16px}#report-summary{margin-inline:16px}
+ #report-summary .report-total>strong{font-size:21px}
+ #report-workspace .report-primary-controls>label{max-width:none}
+ #report-workspace .report-primary-controls select{min-height:48px}
+ #report-years .years-chart svg{min-height:0}
+ #report-workspace .report-footnote{padding-inline:16px}
+ .period-row>summary{gap:8px}.period-row>summary b{font-size:17px}
+ #custom-comparison{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}#compare-apply{grid-column:1/-1}
+}
+@media(max-width:360px){
+ .report-picker button{padding:14px 12px;gap:9px;grid-template-columns:36px minmax(0,1fr) 14px}
+ .report-menu-icon{width:36px;height:40px;font-size:26px}.report-picker strong{font-size:17px}
+ #report-summary .report-total>strong{font-size:19px}
+ .period-row>summary{flex-wrap:wrap}.period-row>summary>strong{font-size:14px}.period-row>summary>span{flex-shrink:1}
+}
+
+/* Monthly reports expose the existing store/year controls in one compact row. */
+
+
+label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:auto;min-height:44px;margin:0;color:var(--ink);font-size:14px;line-height:1.5;cursor:pointer}
+.report-hidden-toggle input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--purple)}
+.report-hidden-toggle input:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
+.catalog-report-toggle{flex-basis:100%}
+
+.monthly-quick-filters:not([hidden]){display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start;gap:8px;margin:0 0 8px}
+#monthly-quick-filters #scope-panel,#monthly-quick-filters #monthly-year-settings{min-width:0;border:0;border-radius:0;background:none;padding:0;margin:0;box-shadow:none}
+#monthly-quick-filters .controls{display:block;margin:0;min-width:0}
+#monthly-quick-filters label{display:block;width:100%;margin:0;min-width:0}
+#monthly-quick-filters [hidden]{display:none}
+#monthly-quick-filters select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:44px;margin:0;padding:8px 28px 8px 10px;font-size:16px;line-height:1.4;background-color:#fff;color:var(--ink)}
+#monthly-quick-filters .scope-field-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* Annual comparisons keep scope controls and exact values close to the plot. */
+#annual-quick-filters #scope-panel,#annual-quick-filters #report-year-settings{min-width:0;border:0;border-radius:0;background:none;padding:0;margin:0;box-shadow:none}
+#annual-quick-filters .controls{display:block;margin:0;min-width:0}
+#annual-quick-filters label{display:block;width:100%;margin:0;min-width:0}
+#annual-quick-filters select,.annual-chart-controls select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:44px;margin:0;padding:8px 28px 8px 10px;font-size:16px;line-height:1.4;background-color:#fff;color:var(--ink)}
+#annual-quick-filters .scope-field-label,.annual-chart-controls .scope-field-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#annual-quick-filters[data-mode=period]{grid-template-columns:minmax(0,1fr)}
+#annual-quick-filters[data-mode=period] #scope-panel>.controls{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px}
+#annual-quick-filters .store-comparison-scope>.controls>label:first-child{grid-column:1/-1}
+#annual-quick-filters #range-details>summary{display:none}
+#annual-quick-filters #range-details .controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+#annual-quick-filters #range-apply{grid-column:1/-1}
+#report-years .annual-chart-controls{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;margin:0 0 6px;align-items:start}
+#report-years .annual-chart-controls>label{min-width:0;max-width:none;margin:0}
+#report-years #comparison-view{margin-bottom:8px}
+#report-years #years-period-note{margin:4px 0;font-size:13px;line-height:1.5}
+#report-years .years-chart-legend{margin:4px 0;gap:8px 12px}
+#report-years #compare-context{white-space:pre-line;font-size:13px;line-height:1.6;margin:8px 0}
+#report-years .period-values-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:15px;font-variant-numeric:tabular-nums}
+#report-years .period-values-table caption{text-align:right;font-size:13px;color:var(--muted);padding-bottom:4px}
+#report-years .period-values-table th,#report-years .period-values-table td{padding:12px 3px;text-align:right;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+#report-years .period-values-table th:first-child{width:15%;text-align:left}
+#report-years .period-values-table th:last-child{width:28%}
+#report-years .period-values-table thead th{color:var(--muted);font-size:13px;font-weight:500}
+#report-years .period-values-table td{font-family:Arial,sans-serif}
+#report-years .period-values-table .negative-amount{color:var(--peach)}
+@media(max-width:760px){
+ .annual-comparison-page .app-header{padding:12px 16px 4px}
+ .annual-comparison-page .app-header>div>p{display:none}
+ .annual-comparison-page .app-header h1{font-size:22px}
+ .annual-comparison-page #app-main{padding-top:4px}
+ .annual-comparison-page .app-status{margin:2px 0 6px}
+ .annual-comparison-page .report-detail-header{margin-bottom:4px}
+ .annual-comparison-page #report-workspace .reports-panel{padding-top:10px}
+ .annual-comparison-page #report-workspace .report-primary-controls select{min-height:44px}
+ #report-years .year-chart-readout{margin-top:4px;padding-top:4px}
+ #report-years .year-chart-month-nav{margin-bottom:0}
+ #report-years .year-chart-month-nav strong{font-size:17px}
+ #report-years .chart-values-table th,#report-years .chart-values-table td{padding:8px 4px}
+ #report-years .chart-values-table thead th{padding-top:6px;padding-bottom:6px}
+ #report-years .year-chart-detail,#report-years .secondary-report{margin:10px 0;padding:10px 0}
+ .annual-comparison-page #report-workspace .report-footnote{margin-top:8px}
+}
+
+@media(max-width:760px){
+ .annual-comparison-page .app-header>div{display:flex;align-items:center;gap:4px;min-width:0}
+ .annual-comparison-page #report-back{flex:0 0 44px;min-width:44px;min-height:44px;padding:0;font-size:0}
+ .annual-comparison-page #report-back::before{content:'←';font-size:22px}
+ .annual-comparison-page .report-detail-header{margin:0}
+ .annual-comparison-page #report-years .year-chart-readout{margin-top:4px;padding-top:4px}
+ .annual-comparison-page #report-years .year-chart-month-nav{margin-bottom:0}
+ .annual-comparison-page #report-years .chart-values-table th,.annual-comparison-page #report-years .chart-values-table td{padding:7px 4px}
+ .annual-comparison-page #report-years .chart-values-table thead th{padding:5px 4px}
+}
+
+#report-years .period-values-table{display:table}
+#report-years .period-values-table thead{display:table-header-group;position:static;clip-path:none;clip:auto;width:auto;height:auto;overflow:visible}
+#report-years .period-values-table tbody{display:table-row-group;width:auto}
+#report-years .period-values-table tr{display:table-row}
+#report-years .period-values-table th,#report-years .period-values-table td{display:table-cell;background:none;white-space:normal}
+#report-years .period-values-table caption{width:auto}
+@media(min-width:761px){
+ .annual-comparison-page .app-header>div{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 12px}
+ .annual-comparison-page .app-header>div>p{grid-column:1/-1}
+}
+@media(max-width:360px){
+ .annual-comparison-page .app-header{gap:4px;padding-inline:14px}
+ .annual-comparison-page .app-header h1{font-size:20px;white-space:nowrap}
+ .annual-comparison-page .app-header .badge{white-space:nowrap;flex-shrink:0;padding-inline:8px;font-size:11px}
+ #report-years .period-values-table th,#report-years .period-values-table td{font-size:14px;padding-inline:2px}
+ #report-years .period-values-table thead th{font-size:13px}
+}
+
+/* Period totals compare categories with paired bars; exact values appear once below. */
+#period-chart{margin:6px 0 2px}
+.period-chart-legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:13px;margin:0 0 2px}
+.period-chart-legend>span{display:flex;align-items:center;gap:6px}
+.period-chart-legend small{margin-left:auto;font-size:13px}
+.period-chart-legend i{display:inline-block;box-sizing:border-box;width:17px;height:8px;border-radius:2px}
+.period-current-key{background:#655472}
+.period-previous-key{border:1.5px dashed #655472;background:white}
+#report-years .period-pair-chart{display:block;width:100%;height:auto;min-height:0;overflow:visible}
+.period-pair-chart .period-current{fill:var(--period-color);stroke:var(--period-color);stroke-width:1}
+.period-pair-chart .period-previous{fill:white;stroke:var(--period-color);stroke-width:1.5;stroke-dasharray:3 2}
+.period-pair-chart .period-grid-line{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+.period-pair-chart .period-zero-line{stroke:#93829e;stroke-width:1}
+.period-pair-chart .period-metric-label{fill:var(--ink);font-size:14px}
+.period-pair-chart .period-axis-label{fill:var(--muted);font-size:12px}
+.period-pair-chart .period-missing-label{fill:var(--muted);font-size:12px}
+#report-years .period-values-table caption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+#report-years #period-comparison>.report-primary-controls{margin:0 0 6px}
+#report-years #period-comparison>.report-primary-controls>label{display:block;max-width:none;min-width:0}
+#report-years #period-comparison>.report-primary-controls select{width:100%}
+#report-years #compare-context{margin:4px 0 6px}
+#report-years .period-custom-notice{font-size:13px;margin:4px 0;color:var(--muted);line-height:1.5}
+@media(max-width:760px){
+ #report-years .period-values-table th,#report-years .period-values-table td{padding-block:9px}
+ #report-years .period-values-table thead th{padding-block:6px}
+}
+@media(forced-colors:active){
+ .period-pair-chart .period-current{fill:CanvasText;stroke:CanvasText}
+ .period-pair-chart .period-previous{fill:Canvas;stroke:CanvasText}
+ .period-pair-chart .period-zero-line,.period-pair-chart .period-grid-line{stroke:CanvasText}
+ .period-pair-chart text{fill:CanvasText}
+ .period-current-key{background:CanvasText}.period-previous-key{background:Canvas;border-color:CanvasText}
+}
+
+.period-chart-empty{padding:12px 0;margin:4px 0;color:var(--muted);font-size:14px;line-height:1.6}
+
+/* Integrate comparison geometry with one readable amount row per year/store. */
+#three-year-summary.annual-total-chart{display:block;margin:8px 0 0}
+.total-comparison-head,.total-comparison-values{display:grid;grid-template-columns:minmax(0,.6fr) minmax(0,1.5fr) minmax(0,1fr);gap:6px;align-items:center}
+.total-comparison-head{text-align:right;color:var(--muted);font-size:13px;line-height:1.5;padding:6px 0}
+.total-comparison-head>:first-child,.total-comparison-values>:first-child{text-align:left}
+.total-comparison-values{text-align:right;font-variant-numeric:tabular-nums;font-size:15px;line-height:1.65}
+.total-comparison-values b,.total-comparison-values>span{font-family:Arial,sans-serif;overflow-wrap:anywhere}
+.total-comparison-values strong{font-size:15px}
+.annual-total-item{padding:10px 0;border-bottom:1px solid var(--line)}
+.annual-total-item:last-child{background:#f8f5fc}
+.comparison-money-axis,.annual-total-bar,.store-period-dots{display:block;width:100%;height:auto;min-height:0;overflow:visible}
+.comparison-money-axis text{font-size:12px;fill:var(--muted)}
+.annual-total-bar{margin-top:3px}
+.comparison-zero{stroke:#94839f;stroke-width:1}
+.store-period-connector{stroke:#a79aad;stroke-width:3}
+#report-stores #store-view{margin:0 0 8px}
+#report-stores .same-period-dates{font-size:13px;line-height:1.5;color:var(--muted);margin:4px 0 8px}
+.same-period-duration{font-size:13px;line-height:1.5;margin:4px 0}
+.same-period-legend{display:flex;gap:14px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:2px}
+.same-period-legend small{margin-left:auto;font-size:13px}
+.store-period-table{display:table;width:100%;table-layout:fixed;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;line-height:1.6}
+.store-period-table .metric-col{width:14%}.store-period-table .amount-col{width:29%}.store-period-table .growth-col{width:28%}
+.store-period-table thead{display:table-header-group;position:static;width:auto;height:auto;overflow:visible;clip-path:none}
+.store-period-table tbody{display:table-row-group;width:auto}
+.store-period-table tr{display:table-row}
+.store-period-table th,.store-period-table td{display:table-cell;background:none;border:0;padding:3px 2px;text-align:right;overflow-wrap:anywhere;white-space:normal}
+.store-period-table th:first-child{padding-left:0;text-align:left;color:var(--ink);font-weight:500}
+.store-period-table td{color:var(--ink);font-family:Arial,sans-serif}
+.store-period-table td.missing-amount{color:var(--muted)}
+.store-period-table th:last-child,.store-period-table td:last-child{padding-right:0}
+.store-period-table thead th{font-size:13px;font-weight:400;color:var(--muted);padding-bottom:4px;white-space:nowrap}
+.store-period-table .store-period-store th{padding:2px 0 0}
+.store-period-table .store-period-chart-row td{padding:0 0 4px}
+.store-period-table .store-period-item tr:last-child>*{border-bottom:1px solid var(--line);padding-bottom:6px}
+.store-yoy-page #annual-quick-filters[data-mode=period] #scope-panel>.controls{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+.store-yoy-page #annual-quick-filters #scope-panel>.controls>.store-picker-field{grid-column:auto}
+#report-stores .store-period-records{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:5px 0;text-align:left;background:none;border:0;color:var(--ink);font-size:16px;line-height:1.4}
+#report-stores .store-period-records strong{font-size:16px;overflow-wrap:anywhere}
+#report-stores .store-period-records>span{color:var(--purple);font-size:20px}
+#report-stores .store-period-records:disabled{opacity:1;color:var(--muted)}
+#report-stores .store-period-records:disabled>span{visibility:hidden}
+.comparison-explanation{margin:12px 0;padding:8px 0;border-top:1px solid var(--line)}
+.comparison-explanation summary{min-height:44px;cursor:pointer;display:flex;align-items:center;gap:7px;color:var(--purple);font-size:14px}
+.comparison-explanation summary::before{content:'▸'}
+.comparison-explanation[open] summary::before{content:'▾'}
+.comparison-explanation p{color:var(--muted);font-size:14px;line-height:1.7}
+.store-period-pages{display:flex;justify-content:center;gap:14px;align-items:center;margin-top:8px;font-size:14px}
+.store-period-pages button{min-width:44px;min-height:44px;background:white;border:1px solid var(--line);border-radius:9px;color:var(--purple);font-size:18px}
+.store-yoy-page #report-stores>details,.store-yoy-page #compact-range-context{display:none}
+#report-stores>.compact-store-controls:empty{display:none}
+@media(max-width:760px){
+ #report-years #comparison-view button{padding-inline:4px;font-size:14px;white-space:nowrap}
+ .store-yoy-page #report-workspace .reports-panel{padding-top:10px}
+ #three-year-summary .annual-total-item{padding-block:9px}
+}
+@media(forced-colors:active){
+ .annual-total-bar rect,.annual-total-bar circle,.store-period-dots circle{fill:CanvasText}
+ .store-period-dots rect{fill:Canvas;stroke:CanvasText}
+ .comparison-zero,.store-period-connector{stroke:CanvasText}
+ .comparison-money-axis text{fill:CanvasText}
+}
+
+/* One compact mobile layout for every report; essential filters are always visible. */
+.app-status:empty{display:none}
+.scope-period-context{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 0 0}
+#scope-panel #range-details>summary{display:list-item;min-height:44px;padding-block:12px}
+#scope-panel #range-details .controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+#scope-panel #range-details .controls>label{min-width:0;width:auto}
+#scope-panel #range-apply{grid-column:1/-1}
+.report-detail-page #report-workspace .reports-panel{padding:10px 0 12px}
+.report-detail-page #report-workspace .report-detail-header{margin:0}
+#report-workspace #total-view{margin:0 0 8px}
+#report-workspace #total-view button{white-space:nowrap;font-size:14px;padding-inline:4px}
+#report-workspace .category-controls,#report-workspace .report-primary-controls{margin:0 0 8px}
+#report-workspace .report-primary-controls>label{max-width:none;min-width:0;display:block}
+#report-workspace .report-primary-controls select{min-height:44px;margin:0;padding:8px 28px 8px 10px}
+#report-workspace #report-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 10px;padding:6px 0;border-bottom:1px solid var(--line)}
+#report-workspace #report-summary .report-total{display:block;padding:0;border:0;min-width:0}
+#report-workspace #report-summary .report-total>span{font-size:13px}
+#report-workspace #report-summary .report-total>strong{font-size:16px;text-align:left;margin-top:3px;overflow-wrap:anywhere}
+.grouped-ledger-head,.grouped-ledger-row{display:grid;grid-template-columns:minmax(0,.9fr) repeat(3,minmax(0,1fr));gap:6px;text-align:right;align-items:center}
+.grouped-ledger-head{font-size:13px;color:var(--muted);padding:8px 0}
+.grouped-ledger-head>:first-child,.grouped-ledger-row>:first-child{text-align:left}
+#grouped-report .grouped-ledger-row{width:100%;min-height:52px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font-size:14px;line-height:1.5;padding:8px 0;font-variant-numeric:tabular-nums}
+.grouped-ledger-row span{font-family:Arial,sans-serif;overflow-wrap:anywhere}
+.grouped-ledger-row strong{font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.grouped-ledger-row:disabled{opacity:1}
+#report-categories .category-total{display:flex;justify-content:space-between;align-items:baseline;gap:10px;background:none;border:0;padding:6px 0 12px;margin:0;color:var(--ink)}
+#report-categories .category-total span{font-size:14px;color:var(--muted)}
+#report-categories .category-total strong{font-size:20px;font-family:Arial,sans-serif}
+.compact-category-head,.compact-category-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) minmax(0,.8fr);gap:7px;align-items:center;text-align:right}
+.compact-category-head{font-size:13px;color:var(--muted);padding:6px 0}
+.compact-category-head>:first-child,.compact-category-row>:first-child{text-align:left}
+.compact-category-row{position:relative;width:100%;background:none;border:0;border-bottom:1px solid var(--line);color:var(--ink);min-height:56px;padding:10px 0 13px;font-size:15px;line-height:1.5}
+.compact-category-row strong{font-size:15px;font-family:Arial,sans-serif;font-weight:600;overflow-wrap:anywhere}
+.compact-category-row small{font-size:14px;font-family:Arial,sans-serif}
+.compact-category-row>span{overflow-wrap:anywhere}
+.compact-category-row>i{position:absolute;left:0;right:0;bottom:5px;height:3px;background:#eee8f4;border-radius:2px}
+.compact-category-row>i>b{display:block;height:100%;background:var(--purple);border-radius:2px}
+.current-store-head,.current-store-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:right}
+.current-store-head{font-size:13px;color:var(--muted);padding:4px 0}
+.current-store-values{font-family:Arial,sans-serif;font-size:15px;line-height:1.6;font-variant-numeric:tabular-nums}
+.current-store-values span{overflow-wrap:anywhere}
+.current-store-row{padding-bottom:8px;border-bottom:1px solid var(--line)}
+#store-ranking .current-store-row>button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:44px;padding:5px 0;background:none;border:0;color:var(--ink);font-size:16px;text-align:left;line-height:1.4}
+.current-store-row>button strong{font-size:16px;overflow-wrap:anywhere}
+.current-store-row>button>span{font-size:20px;color:var(--purple)}
+.current-store-row>button:disabled{opacity:1;color:var(--muted)}
+.current-store-row>button:disabled>span{visibility:hidden}
+.current-store-bars{display:block;width:100%;height:auto;min-height:0}
+#report-stores #store-ranking{padding:0;margin:0}
+.report-extra{margin:10px 0 0;border-top:1px solid var(--line);padding-top:5px}
+.report-extra summary{display:flex;gap:7px;align-items:center;min-height:44px;cursor:pointer;color:var(--purple);font-size:14px;list-style:none}
+.report-extra summary::before{content:'▸'}.report-extra[open] summary::before{content:'▾'}
+.report-extra p{font-size:14px;line-height:1.65;color:var(--muted)}
+.report-calculation{margin-inline:16px}
+.monthly-chart-tools{display:block;margin:0 0 4px}
+.monthly-chart-tools.comparison-tools{display:grid;grid-template-columns:minmax(0,100px) minmax(0,1fr);gap:10px;align-items:center}
+.monthly-chart-tools select{min-height:44px;width:100%;min-width:0;border:1px solid #b8acc5;border-radius:10px;padding:8px 24px 8px 10px;background:white;color:var(--ink);font-size:16px}
+.monthly-chart-tools .monthly-legend{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;margin:0;font-size:13px}
+.monthly-chart-tools .monthly-legend>span{display:flex;align-items:center;gap:5px;white-space:nowrap}
+.monthly-chart-tools .monthly-legend>small{font-size:13px;margin-left:auto;color:var(--muted)}
+#report-rhythm #monthly-chart .monthly-status{font-size:13px;line-height:1.5;margin:4px 0}
+#overview .chart-panel .panel-heading button,#transactions .panel-heading>button{margin-left:auto}
+@media(max-width:760px){
+ .app-header{padding:12px 16px 6px;gap:10px}.app-header h1{font-size:22px}
+ #app-main{padding-top:4px}
+ .app-status{margin:4px 0 8px}
+ #report-rhythm #monthly-chart .monthly-readout{margin-top:4px;padding-top:4px}
+ #report-rhythm #monthly-chart .monthly-nav{margin:0;min-height:44px}
+ #report-rhythm #monthly-chart .monthly-nav h3{font-size:17px}
+ #report-rhythm #monthly-chart .monthly-comparison th,#report-rhythm #monthly-chart .monthly-comparison td{padding:7px 2px;line-height:1.5}
+ #report-rhythm #monthly-chart .monthly-extra{margin:8px 0 0;padding-top:6px}
+ .report-detail-page #report-rhythm .report-inner,.report-detail-page #report-categories .report-inner,.report-detail-page #report-stores{padding-inline:16px}
+ .management-panel .panel-heading p{display:none}
+}
+@media(max-width:360px){
+ #report-rhythm #monthly-chart .monthly-comparison td{font-size:14px}
+ #report-rhythm #monthly-chart .monthly-comparison th{font-size:13px}
+ .current-store-values{font-size:14px}
+}
+@media(forced-colors:active){
+ .current-store-bars rect,.current-store-bars circle,.current-store-bars path{fill:CanvasText;stroke:CanvasText}
+ .compact-category-row>i{background:Canvas}.compact-category-row>i>b{background:CanvasText}
+}
+
+#report-workspace #total-view{display:flex;gap:5px;background:#ede7f4;padding:4px;border:0;border-radius:12px}
+#report-workspace #total-view button{flex:1;min-width:0;min-height:44px;background:none;border:0;border-radius:8px;color:var(--muted);font-size:14px;font-weight:400}
+#report-workspace #total-view button[aria-pressed=true]{background:var(--purple);color:white;font-weight:600}
+#report-workspace #total-view button::after{content:none}
+#report-workspace #report-group{margin:0 0 8px}
+#report-workspace #report-group button{min-width:0;font-size:15px}
+@media(forced-colors:active){
+ #report-workspace #report-group button[aria-pressed=true]{outline:2px solid Highlight;outline-offset:-2px}
+}
+#report-rhythm #monthly-chart .monthly-comparison .metric-col{width:14%}
+#report-rhythm #monthly-chart .monthly-comparison .amount-col{width:30%}
+#report-rhythm #monthly-chart .monthly-comparison .growth-col{width:26%}
+.current-store-head i{font-style:normal;font-size:10px;margin-right:3px}
+.current-store-head .income-key{color:var(--chart-income-bar)}.current-store-head .expense-key{color:var(--chart-expense-bar)}.current-store-head .balance-key{color:var(--chart-balance-bar)}
+
+#report-workspace #report-summary .report-total>strong{font-family:Arial,sans-serif}
+#overview>.chart-panel>.panel-heading{display:none}
+.management-panel .panel-heading:has(h2.sr-only){display:none}
+@media(max-width:760px){
+ #entry-panel .entry-panel{padding:16px 14px}
+ #entry-form .field{margin-bottom:12px}
+ #entry-form .entry-type{margin-bottom:14px}
+ #entry-form .amount-input{padding:12px;min-height:64px}
+ #entry-form .amount-input input{font-size:30px}
+}
