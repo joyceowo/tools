@@ -51,9 +51,27 @@ export function ensureCatalog(raw,rows=[],id=()=>crypto.randomUUID()){
   }
   return validateCatalog(catalog);
 }
-export function editCatalog(catalog,{kind,id,name,active,makeDefault,hiddenFromReports}){
+// Keep each type's saved order, including inactive items and legacy mixed lists.
+export function catalogItems(catalog,kind){
+  const list=catalog[kind];
+  return kind==='categories'?['expense','income'].flatMap(type=>list.filter(item=>item.type===type)):[...list];
+}
+export function moveCatalogItem(catalog,kind,id,position){
+  const next=structuredClone(catalog),list=catalogItems(next,kind),index=list.findIndex(item=>item.id===id);
+  if(index<0)throw Error('找不到項目。');
+  if(!Number.isInteger(position)||position<0||position>=list.length)throw Error('排序位置不正確。');
+  if(kind==='categories'&&list[index].type!==list[position].type)return next;
+  const [item]=list.splice(index,1);list.splice(position,0,item);next[kind]=list;
+  return validateCatalog(next);
+}
+export function editCatalog(catalog,{kind,id,name,active,makeDefault,hiddenFromReports,move}){
   const next=structuredClone(catalog),list=next[kind];if(!list)throw Error('項目類型不正確。');
   const item=list.find(x=>x.id===id);if(!item)throw Error('找不到項目。');
+  if(move!==undefined){
+    if(move!==-1&&move!==1)throw Error('排序方向不正確。');
+    const index=list.indexOf(item),target=index+move;
+    if(target>=0&&target<list.length)[list[index],list[target]]=[list[target],list[index]];
+  }
   if(name!==undefined&&name.trim()!==item.name){const old=item.name;item.name=name.trim();item.aliases=[...new Set([...item.aliases,old])].filter(x=>x!==item.name);}
   if(active!==undefined)item.active=active;
   if(kind==='stores'&&hiddenFromReports!==undefined)item.hiddenFromReports=hiddenFromReports;

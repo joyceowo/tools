@@ -1,3 +1,7 @@
+import {setupCatalogSort} from './catalog-sort.js';
+import {setupMobileShell} from './mobile-shell.js';
+import {setupTransactionTools} from './transaction-tools.js';
+import {setupTransactionPeriod} from './transaction-period.js';
 import {annualWindow,assertEntryDate,assertAnnualSupport,yearAvailability} from './annual-window.js';
 import {isStandalone,launchConnectionUrl,setupPwa} from './pwa.js';
 import {comparisonTone} from './chart-design.js';
@@ -12,7 +16,7 @@ import {createReports} from './reports.js';
 import {createBalanceCalendar} from './balance-calendar.js';
 import {createDemoRows} from './demo.js';
 import {createStorePicker} from './store-picker.js';
-import {ensureCatalog,validateCatalog,editCatalog,normalizeRows,resolveName,reportScope,reportStoreLabel} from './catalog.js';
+import {ensureCatalog,validateCatalog,editCatalog,catalogItems,moveCatalogItem,normalizeRows,resolveName,reportScope,reportStoreLabel} from './catalog.js';
 import {checkedRange,presetRange,limitedReportPeriod,annualRange,rangeRows,previousRange,compareRanges} from './reporting.js';
 const $ = id => document.getElementById(id);
 const escapeHtml = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -20,8 +24,27 @@ const money = value => new Intl.NumberFormat('zh-TW', {maximumFractionDigits:2})
 const overviewPercent = new Intl.NumberFormat('zh-TW', {maximumFractionDigits:0,signDisplay:'exceptZero'});
 let today = taipeiDay();
 const storage = { get(key, fallback = null) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }, set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { toast('此瀏覽器無法保存設定，關閉分頁前請保留連接連結。'); } }, remove(key) { try {localStorage.removeItem(key);} catch {} } };
-let config = null, demo = true, rows = [], ready = true, page = 1, entryType = 'income', editing = null, pendingDelete = null, busy = false, lastSync = null, syncFailed = false;
+let config = null, demo = true, rows = [], ready = true, page = 1, entryType = 'expense', editing = null, pendingDelete = null, busy = false, lastSync = null, syncFailed = false;
 let pendingId = null, toastTimer, refreshBusy = false;
+let catalogSnapshot='', catalogReturn=false, catalogScroll=0, pendingCatalog=null;
+let activeDestination=null,activeScrollKey=null;
+const pageScroll=new Map();
+history.scrollRestoration='manual';
+setupMobileShell();
+const recordsMedia=window.matchMedia('(max-width:760px)');
+let recordLimit=20;
+let recordViewportAnchor=null,recordLayoutMobile=recordsMedia.matches,recordScrollFrame=null;
+function rememberRecordAnchor(){
+ if(activeDestination!=='transactions'||recordsMedia.matches!==recordLayoutMobile)return;
+ const edge=Math.max(0,$('scope-panel').getBoundingClientRect().bottom);
+ const node=[...$('records-body').querySelectorAll('[data-record-id]')].find(n=>n.getBoundingClientRect().bottom>edge);
+ if(node)recordViewportAnchor={id:node.dataset.recordId,top:node.getBoundingClientRect().top};
+}
+window.addEventListener('scroll',()=>{
+ if(recordScrollFrame!==null)return;
+ recordScrollFrame=requestAnimationFrame(()=>{recordScrollFrame=null;rememberRecordAnchor();});
+},{passive:true});
+const restoreCatalogScroll=()=>requestAnimationFrame(()=>window.scrollTo({top:catalogScroll,behavior:'instant'}));
 let storeScope='*',range=presetRange('month',today),catalog=null,catalogRevision=0,catalogSupported=false,catalogBusy=false,managementKind='stores',catalogEditing=null;
 let normalizedSource=null,normalizedCatalog=null,normalizedRows=[],catalogSource=null,catalogInput=null,pickerCatalog=null,pickerRows=null;
 let reportVisibilitySupported=false,reportSource=null,reportCatalog=null,reportStore=null,reportSelection=null;
@@ -40,15 +63,32 @@ const ledgerCache=createLedgerCache();
 let annualCoverage=annualWindow(today);
 const catalogKey=()=>demo?'jelly-catalog-demo-v1':'jelly-catalog-'+config?.sheet;
 const pageTitles={overview:'總覽',transactions:'收支明細','entry-panel':'記一筆',annual:'經營報表',management:'管理'};
-function navigate(hash){if(location.hash!==hash)history.pushState(null,'',hash);activateDestination(hash);}
+function navigate(hash,{resetScroll=false,state={}}={}){
+ const reportView=hash==='#annual'&&!reports.isHome()?reports.getView():null;
+ if(location.hash!==hash)history.pushState({...state,reportView},'',hash);
+ activateDestination(hash,{resetScroll});
+}
 function applyRange(next,preset='custom'){if(next.start<annualCoverage.startYear+'-01-01')throw Error('只能查詢 '+annualCoverage.startYear+'～'+annualCoverage.endYear+' 年資料。');range=checkedRange(next.start,next.end,today);$('range-preset').value=preset;$('range-start').value=range.start;$('range-end').value=range.end;showError('range-error','');render();}
-function openRecords(next,category='',type='all'){applyRange(next);$('filter-type').value=type;$('filter-category').value=category;$('filter-search').value='';page=1;renderTable();navigate('#transactions');}
+function openRecords(next,category='',type='all'){applyRange(next);$('filter-type').value=type;$('filter-category').value=category;$('filter-search').value='';page=1;renderTable();navigate('#transactions',{resetScroll:true});}
 function monthRange(month){const last=new Date(month+'-01T12:00:00Z');last.setUTCMonth(last.getUTCMonth()+1);last.setUTCDate(0);return checkedRange(month+'-01',last.toISOString().slice(0,10),today);}
 const scopedRows=()=>reportData().rows;
-function selectStore(scope){storeScope=scope==='*'?'*':Array.isArray(scope)?[...scope]:[scope];page=1;render();}
+function selectStore(scope){storeScope=scope==='*'?'*':Array.isArray(scope)?[...scope]:[scope];render();}
 const storePicker=createStorePicker({getCatalog:()=>catalog,getScope:()=>storeScope,onApply:selectStore});
-const reports=createReports({today,onStore:selectStore,onContextChange:syncScope,onLimitedPeriod:()=>{const next=limitedReportPeriod(range,today);applyRange(next.range,next.value);},onRange:next=>openRecords(next),onMonth:month=>{try{openRecords(monthRange(month));}catch(e){toast(e.message);}},onCategory:(name,type,categoryRange=range)=>openRecords(categoryRange,name,type)});
-const balanceCalendar=createBalanceCalendar({today,onMonth:month=>openRecords(monthRange(month)),onDay:date=>openRecords({start:date,end:date})});
+function rememberReport(view){
+ if(activeScrollKey)pageScroll.set(activeScrollKey,window.scrollY);
+ activeScrollKey='annual:'+view;
+ history.pushState({reportView:view,reportParent:true},'','#annual');
+}
+function returnToReportMenu(){
+ if(history.state?.reportParent){history.back();return;}
+ // A tab return can have another main page behind it; the header still leads to reports.
+ history.replaceState({reportView:null},'','#annual');
+ activateDestination('#annual',{fromHistory:true});
+}
+const reports=createReports({today,onNavigate:rememberReport,onBack:returnToReportMenu,onStore:selectStore,onContextChange:syncScope,getPeriod:()=>$('range-preset').value,onPeriod:value=>applyRange(presetRange(value,today),value),onLimitedPeriod:()=>{const next=limitedReportPeriod(range,today,$('range-preset').value);applyRange(next.range,next.value);},onRange:next=>openRecords(next),onMonth:month=>{try{openRecords(monthRange(month));}catch(e){toast(e.message);}},onCategory:(name,type,categoryRange=range)=>openRecords(categoryRange,name,type)});
+const balanceCalendar=createBalanceCalendar({today});
+const transactionTools=setupTransactionTools({getRows:displayRows,onChange:({resetScroll=false}={})=>{page=1;renderTable();if(resetScroll)window.scrollTo({top:0,behavior:'instant'});}});
+const transactionPeriod=setupTransactionPeriod({getRange:()=>range,getToday:()=>today,getWindow:()=>annualCoverage,onApply:applyRange});
 function renderStorePicker(currentStore=$('entry-store').value){
  const stores=catalog?.stores||[];
  const orderedStores=[...stores.filter(s=>!s.hiddenFromReports),...stores.filter(s=>s.hiddenFromReports)];
@@ -85,21 +125,22 @@ function draftKey() { return 'jelly-draft-v1-' + (demo ? 'demo' : config?.sheet)
 function getDraft() { return {date:$('entry-date').value,type:entryType,category:$('entry-category').value,amount:$('entry-amount').value,note:$('entry-note').value,store:$('entry-store').value,id:pendingId,editing}; }
 function storeDraft() { pendingId = pendingId || crypto.randomUUID(); storage.set(draftKey(), getDraft()); }
 function setType(type) {
+  const category=type===entryType?$('entry-category').value:'';
   entryType = type;
   document.querySelectorAll('[data-type]').forEach(b=>{b.classList.toggle('selected',b.dataset.type === type);b.setAttribute('aria-pressed',String(b.dataset.type === type));});
-  updateCategoryOptions();
+  updateCategoryOptions(category);updateEntryAction();
 }
 function resetEntry(restore = false) {
   const previousStore=$('entry-store').value,previousDate=$('entry-date').value,previousType=entryType,previousCategory=$('entry-category').value;
-  $('entry-form').reset();setType(restore?'income':previousType);$('entry-date').value=restore?today:(previousDate||today);renderStorePicker();
+  $('entry-form').reset();setType(restore?'expense':previousType);$('entry-date').value=restore?today:(previousDate||today);renderStorePicker();
   $('entry-store').value=restore?(catalog?.stores.find(s=>s.id===catalog.defaultStore&&s.active)?.name||''):(previousStore||'');if(!restore)updateCategoryOptions(previousCategory);editing=null;pendingId=null;
-  $('entry-title').innerHTML='記下一筆 <span class="purple-text">＋</span>';$('entry-title').closest('.panel-heading').hidden=true; $('cancel-edit').hidden=true; showError('save-error','');
+  $('entry-title').innerHTML='記下一筆 <span class="purple-text">＋</span>';$('entry-title').closest('.panel-heading').hidden=true; $('cancel-edit').hidden=true;$('entry-delete').hidden=true; showError('save-error','');
   if (restore) {
     const draft = storage.get(draftKey());
     if (draft && Object.hasOwn(categories,draft.type) && validDate(draft.date)) {
       setType(draft.type);const draftCategory=resolveName(catalog,'categories',draft.category,draft.type);updateCategoryOptions(draftCategory); $('entry-date').value=draft.date; $('entry-category').value=draftCategory; $('entry-amount').value=draft.amount; $('entry-note').value=draft.note || ''; if(Object.hasOwn(draft,'store'))renderStorePicker(draft.store||''); pendingId=draft.id; editing=draft.editing || null;
       try{assertEntryDate(draft.date,annualCoverage,editing?.originalYear??null);}catch(e){showError('save-error',e.message+' 草稿已保留。');}
-      if(editing) { if(!Number.isInteger(editing.originalYear))showError('save-error','舊草稿缺少原年度資訊，請取消修改並重新開啟明細。');$('entry-title').textContent='修改這筆記錄';$('entry-title').closest('.panel-heading').hidden=false; $('cancel-edit').hidden=false; }
+      if(editing) { if(!Number.isInteger(editing.originalYear))showError('save-error','舊草稿缺少原年度資訊，請取消修改並重新開啟明細。');$('entry-title').textContent='修改這筆記錄';$('entry-title').closest('.panel-heading').hidden=false; $('cancel-edit').hidden=false;$('entry-delete').hidden=false; }
     }
   }
   setBusy(false);
@@ -109,7 +150,8 @@ function updateDateBounds(){
  $('entry-date-note').hidden=!editing;$('entry-date-note').textContent=editing?(year===null?'請重新開啟明細，確認原年度。':'日期限原年度 '+year+' 年內修改。'):'';
  for(const id of ['range-start','range-end']){$(id).min=annualCoverage.startYear+'-01-01';$(id).max=today;}
 }
-function setBusy(value) { updateDateBounds();busy=value; $('entry-form').querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=value || (!demo&&(!ready||refreshBusy))); $('save-button').textContent=value?'正在確認儲存…':editing?'✓ 儲存修改':'儲存記錄'; }
+function updateEntryAction(){$('save-button').textContent=busy?'正在確認儲存…':editing?'✓ 儲存修改':entryType==='income'?'儲存收入':'儲存支出';}
+function setBusy(value) { updateDateBounds();busy=value; $('entry-form').querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=value || (!demo&&(!ready||refreshBusy))); updateEntryAction(); }
 function renderSyncState(){
   $('mode-badge').textContent=demo?'示範帳本':refreshBusy?'同步中':syncFailed?'同步失敗':ready?'已連接':'尚未連接';
   $('app-status').textContent=appStatusMessage({demo,ready,syncFailed:syncFailed&&!refreshBusy});$('app-status').hidden=!$('app-status').textContent;
@@ -160,59 +202,77 @@ function syncScope(){
  document.body.classList.toggle('store-yoy-page',allStores&&reports.getStoreComparisonMode());
  const back=$('report-back'),heading=$('page-title'),backHome=document.querySelector('.report-detail-header');
  if(detail){if(back.parentElement!==heading.parentElement)heading.before(back);}else if(back.parentElement!==backHome)backHome.prepend(back);
- const header=document.querySelector('.app-header'),storeSlot=$('overview-store-slot'),storeField=$('store-scope').closest('.store-picker-field'),badge=$('mode-badge');
- header.classList.toggle('overview-header',inOverview);storeSlot.hidden=!inOverview;
- if(inOverview){
-  if(storeField.parentElement!==storeSlot)storeSlot.append(storeField);
-  if(badge.parentElement!==heading.parentElement)heading.parentElement.append(badge);
- }else{
-  if(storeField.previousElementSibling!==$('store-picker-anchor'))$('store-picker-anchor').after(storeField);
-  if(badge.parentElement!==header)header.append(badge);
- }
- const panel=$('scope-panel'),quick=$('monthly-quick-filters'),annualQuick=$('annual-quick-filters'),filterHome=$('report-filters'),monthlyYear=$('monthly-year-settings');
- const destination=monthly?quick:detail?annualQuick:$('report-filter-slot');
+ const storeSlot=$('header-store-slot');
+ storeSlot.hidden=!(inOverview||inReports||location.hash==='#transactions');
+ const panel=$('scope-panel'),filterHome=$('report-filters');
+ const destination=$('report-filter-slot');
  if(inReports){if(panel.parentElement!==destination)destination.append(panel);}else if(panel.previousElementSibling!==$('scope-anchor'))$('scope-anchor').after(panel);
- if(monthly){if(monthlyYear.parentElement!==quick)quick.append(monthlyYear);}else if(monthlyYear.parentElement!==filterHome)$('report-store-note').before(monthlyYear);
- quick.hidden=!monthly;annualQuick.hidden=!detail||monthly;annualQuick.dataset.mode='period';filterHome.hidden=true;
- monthlyYear.hidden=!monthly;
- panel.hidden=inOverview||home||['#entry-panel','#management'].includes(location.hash);
+ filterHome.hidden=true;
+ panel.hidden=inOverview||inReports||['#entry-panel','#management'].includes(location.hash);
  panel.classList.toggle('store-comparison-scope',allStores);
  panel.classList.toggle('overview-scope',inOverview);
  const limited=detail&&reports.hasLimitedPeriod(),preset=$('range-preset'),oldPreset=preset.value;
  const choices=limited?[['month','本月'],['year','今年'],['lastyear','去年']]:[['today','今日'],['week','近 7 天'],['month','本月'],['year','今年'],['lastyear','去年'],['custom','自訂日期']];
  if([...preset.options].map(o=>o.value).join('|')!==choices.map(c=>c[0]).join('|'))preset.replaceChildren(...choices.map(([value,label])=>new Option(label,value,false,value===oldPreset)));
  const matches=value=>{if(value==='custom')return true;if(!choices.some(c=>c[0]===value))return false;const candidate=presetRange(value,today);return candidate.start===range.start&&candidate.end===range.end;};
- if(limited)preset.value=limitedReportPeriod(range,today).value;
+ if(limited)preset.value=limitedReportPeriod(range,today,$('range-preset').value).value;
  else preset.value=matches(oldPreset)?oldPreset:'custom';
- $('range-preset').closest('label').hidden=inOverview||monthly;
+ const inTransactions=location.hash==='#transactions';
+ transactionPeriod.render(inTransactions);
+ $('range-preset').closest('label').hidden=inOverview||monthly||inTransactions;
  const custom=$('range-preset').value==='custom'&&!inOverview&&!monthly;
- $('range-details').hidden=!custom;$('range-details').toggleAttribute('data-custom',custom);
+ $('range-details').hidden=!custom||inTransactions;$('range-details').toggleAttribute('data-custom',custom);
  $('scope-period-context').hidden=true;
  $('scope-period-context').textContent='';
  if($('compact-range-context'))$('compact-range-context').hidden=true;
  $('report-store-note').hidden=true;$('range-context').textContent=periodLabel(range,today);
 }
 
-function renderTable() {
+function renderTable({append=false}={}) {
+  const summary=$('table-summary');
+  const expanded=new Set([...$('records-body').querySelectorAll('tr[data-record-id]:has(details[open])')].map(n=>n.dataset.recordId));
   const type=$('filter-type').value,category=$('filter-category').value,search=$('filter-search').value.trim().toLowerCase();
   const source=reportData().rows,context=JSON.stringify([storeScope,range.start,range.end,type,category,search]);
+  if(tableContext!==context){
+   page=1;recordLimit=20;recordViewportAnchor=null;pageScroll.set('transactions',0);append=false;
+   if(activeDestination==='transactions')window.scrollTo({top:0,behavior:'instant'});
+  }
   if(tableSource!==source||tableContext!==context){
    tableRows=rangeRows(source,range).filter(r=>(type==='all'||r.type===type)&&(!category||r.category===category)&&(!search||(r.category+' '+r.note+' '+storeLabel(storeKey(r))).toLowerCase().includes(search))).sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt));
    tableSource=source;tableContext=context;
   }
   const filtered=tableRows;
-  $('clear-filters').hidden=type==='all'&&!category&&!search;
   const pages=Math.max(1,Math.ceil(filtered.length/20));page=Math.min(page,pages);
-  $('row-count').textContent=filtered.length; $('table-summary').textContent=`共 ${filtered.length} 筆記錄`;
-  $('page-label').textContent=page+' / '+pages; $('prev-page').disabled=page<=1; $('next-page').disabled=page>=pages;
-  $('records-body').innerHTML=filtered.length?filtered.slice((page-1)*20,page*20).map(r=>{
+  $('row-count').textContent=filtered.length;
+  const mobile=recordsMedia.matches,start=mobile?0:(page-1)*20,end=Math.min(filtered.length,mobile?recordLimit:page*20);
+  summary.textContent=(mobile?'查詢共 ':'共 ')+filtered.length+' 筆';
+  $('page-label').textContent=page+' / '+pages;$('prev-page').disabled=page<=1;$('next-page').disabled=page>=pages;
+  $('records-pagination').hidden=mobile||!filtered.length;
+  $('records-page-range').textContent='第 '+(start+1)+'–'+end+' 筆';
+  $('records-more').hidden=!mobile||!filtered.length;
+  $('records-progress').textContent=end<filtered.length?'已顯示 '+end+'／'+filtered.length+' 筆':'已顯示全部 '+filtered.length+' 筆';
+  $('records-load-more').hidden=end>=filtered.length;
+  const existing=append?$('records-body').querySelectorAll('[data-record-id]').length:0;
+  let previousDate=existing?filtered[existing-1]?.date:null;
+  const markup=filtered.slice(append?existing:start,end).map(r=>{
     const store=storeLabel(storeKey(r)),label=escapeHtml(r.date+' '+store+' '+r.category);
-    return `<tr><td class="record-meta"><time datetime="${escapeHtml(r.date)}">${escapeHtml(r.date)}</time><span class="record-store">${escapeHtml(store)}</span></td>
-      <td><div class="category-cell"><div class="category-name"><span class="record-category">${escapeHtml(r.category)}</span>${r.note?`<details class="record-note"><summary class="category-note" aria-label="${label}，完整備註"><span>${escapeHtml(r.note)}</span></summary><p class="record-full-note">${escapeHtml(r.note)}</p></details>`:''}</div></div></td>
+    const storeMarkup=`<span class="record-store">${escapeHtml(store)}</span>`;
+    const note=r.note?`<details class="record-note"><summary class="category-note" aria-label="${label}，完整備註">${mobile?storeMarkup+'<span class="record-meta-separator" aria-hidden="true">·</span>':''}<span class="record-note-preview">${escapeHtml(r.note)}</span>${mobile?'<span class="record-note-toggle" aria-hidden="true">⌄</span>':''}</summary><p class="record-full-note">${escapeHtml(r.note)}</p></details>`:'';
+    const heading=r.date!==previousDate?`<tr class="record-date-heading"><th colspan="5"><time datetime="${escapeHtml(r.date)}">${escapeHtml(r.date.replaceAll('-','/'))}</time></th></tr>`:'';previousDate=r.date;
+    return heading+`<tr data-record-id="${escapeHtml(r.id)}"><td class="record-meta"><time datetime="${escapeHtml(r.date)}">${escapeHtml(r.date)}</time>${mobile?(note||storeMarkup):storeMarkup}</td>
+      <td><div class="category-cell"><div class="category-name"><button type="button" class="record-category" data-open-record="${escapeHtml(r.id)}" aria-label="查看或修改 ${label}">${escapeHtml(r.category)}</button>${mobile?'':note}</div></div></td>
       <td class="record-type"><span class="type-tag ${r.type==='expense'?'expense-tag':''}">${r.type==='income'?'收入':'支出'}</span></td>
       <td class="amount-cell ${r.type}-amount">${r.type==='income'?'+':'−'} ${money(r.amount)}</td>
       <td><div class="record-actions"><button type="button" class="row-action" data-edit="${escapeHtml(r.id)}" aria-label="修改 ${label}">修改</button><button type="button" class="row-action" data-delete="${escapeHtml(r.id)}" aria-label="刪除 ${label}">刪除</button></div></td></tr>`;
-  }).join(''):'<tr><td class="empty-cell" colspan="5">'+(!demo&&!ready?'連接試算表後，就能看到你的帳本。':'此範圍沒有記錄。')+'</td></tr>';
+  }).join('');
+  // Keep the single live count node when replacing a date heading that contains it.
+  if(!append)$('record-active-filters').append(summary);
+  if(append)$('records-body').insertAdjacentHTML('beforeend',markup);
+  else $('records-body').innerHTML=filtered.length?markup:'<tr><td class="empty-cell" colspan="5">'+(!demo&&!ready?'連接試算表後，就能看到你的帳本。':'本期間沒有符合條件的記錄。<br><button type="button" id="records-adjust-period" class="text-button">調整期間</button>')+'</td></tr>';
+  if(mobile&&filtered.length)$('records-body').querySelector('.record-date-heading th').append(summary);
+  transactionTools.render();
+  if(!append)for(const node of $('records-body').querySelectorAll('tr[data-record-id]'))if(expanded.has(node.dataset.recordId)&&node.querySelector('details'))node.querySelector('details').open=true;
+  requestAnimationFrame(rememberRecordAnchor);
 }
 // Yield a paint so even local saves show feedback without an artificial delay.
 const feedbackPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -273,16 +333,33 @@ $('settings-import-link').onclick=()=>{
 };
 $('toggle-key').onclick=()=>{const hide=$('settings-key').type==='password';$('settings-key').type=hide?'text':'password';$('toggle-key').textContent=hide?'隱藏':'顯示';};
 document.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{setType(b.dataset.type);pendingId=null;storeDraft();});
-function activateDestination(hash){
+function activateDestination(hash,{fromHistory=false,resetScroll=false}={}){
  const id=hash.slice(1),destination=pageTitles[id]?id:'overview';
+ if(activeScrollKey)pageScroll.set(activeScrollKey,window.scrollY);
+ catalogSorter.cancel();transactionTools.close();transactionPeriod.close();
+ $('transaction-tools').hidden=destination!=='transactions';
+ if(destination==='annual'&&fromHistory)reports.restoreView(history.state?.reportView||null);
+ activeDestination=destination;
+ activeScrollKey=destination==='annual'?'annual:'+(reports.isHome()?'menu':reports.getView()):destination;
  document.querySelectorAll('[data-page]').forEach(el=>el.hidden=el.id!==destination);
  document.querySelectorAll('nav a').forEach(a=>{const active=a.hash==='#'+destination;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
- if(destination==='annual')reports.showMenu(false);
+ if(destination==='annual'&&reports.hasLimitedPeriod()){
+  const next=limitedReportPeriod(range,today,$('range-preset').value);
+  if(next.range.start!==range.start||next.range.end!==range.end){range=next.range;$('range-preset').value=next.value;$('range-start').value=range.start;$('range-end').value=range.end;}
+ }
  $('page-title').textContent=pageTitles[destination];$('scope-panel').hidden=['entry-panel','management'].includes(destination);
- window.scrollTo({top:0,behavior:'instant'});render();
+ render();window.scrollTo({top:resetScroll?0:(pageScroll.get(activeScrollKey)||0),behavior:'instant'});
+ if(fromHistory)$('page-title').focus({preventScroll:true});
 }
-window.addEventListener('hashchange',()=>activateDestination(location.hash));
-window.addEventListener('popstate',()=>activateDestination(location.hash));
+window.addEventListener('hashchange',()=>{if(activeDestination!==location.hash.slice(1))activateDestination(location.hash,{fromHistory:true});});
+window.addEventListener('popstate',()=>{
+ if(catalogReturn){catalogReturn=false;restoreCatalogScroll();return;}
+ if($('catalog-dialog').open){
+  if(!closeCatalogEditor())history.pushState({...history.state,catalogEditor:true},'',location.href);
+  return;
+ }
+ activateDestination(location.hash,{fromHistory:true});
+});
 document.addEventListener('click',event=>{const link=event.target.closest('a[href^="#"]');if(link&&Object.hasOwn(pageTitles,link.hash.slice(1))){event.preventDefault();navigate(link.hash);}});
 window.addEventListener('load',()=>window.scrollTo({top:0,behavior:'instant'}));
 window.addEventListener('resize',()=>{if(location.hash==='#annual')renderReports();});
@@ -290,8 +367,26 @@ $('range-preset').onchange=()=>{const preset=$('range-preset').value;if(preset==
 $('range-apply').onclick=()=>{try{applyRange({start:$('range-start').value,end:$('range-end').value});$('range-details').open=true;}catch(e){showError('range-error',e.message);}};
 ['filter-type','filter-category','filter-search'].forEach(id=>$(id).addEventListener('input',()=>{page=1;renderTable();}));
 $('clear-filters').onclick=()=>{$('filter-category').value='';$('filter-type').value='all';$('filter-search').value='';page=1;renderTable();};
-function turnRecordsPage(step){page+=step;renderTable();$('records-start').scrollIntoView({block:'start',behavior:'instant'});}
+function turnRecordsPage(step){page+=step;renderTable();$('records-start').scrollIntoView({block:'start',behavior:'instant'});$('records-body').querySelector('[data-open-record]')?.focus({preventScroll:true});}
 $('prev-page').onclick=()=>turnRecordsPage(-1);$('next-page').onclick=()=>turnRecordsPage(1);$('refresh-button').onclick=refresh;
+$('records-load-more').onclick=()=>{
+ const top=window.scrollY,previous=$('records-body').querySelectorAll('[data-record-id]').length;
+ recordLimit+=20;renderTable({append:true});window.scrollTo({top,behavior:'instant'});
+ $('records-body').querySelectorAll('[data-open-record]')[previous]?.focus({preventScroll:true});
+};
+recordsMedia.addEventListener('change',()=>{
+ if(location.hash!=='#transactions'){
+  const index=tableRows.findIndex(r=>r.id===recordViewportAnchor?.id);
+  if(recordsMedia.matches)recordLimit=Math.max(recordLimit,page*20);else if(index>=0)page=Math.floor(index/20)+1;
+  recordLayoutMobile=recordsMedia.matches;return;
+ }
+ const nodes=[...$('records-body').querySelectorAll('[data-record-id]')],saved=recordViewportAnchor,anchor=nodes.find(n=>n.dataset.recordId===saved?.id)||nodes.find(n=>n.getBoundingClientRect().bottom>Math.max(0,$('scope-panel').getBoundingClientRect().bottom))||nodes[0];
+ const index=tableRows.findIndex(r=>r.id===anchor?.dataset.recordId),top=saved?.id===anchor?.dataset.recordId?saved.top:anchor?.getBoundingClientRect().top;
+ if(recordsMedia.matches)recordLimit=Math.max(recordLimit,page*20);else if(index>=0)page=Math.floor(index/20)+1;
+ recordLayoutMobile=recordsMedia.matches;
+ renderTable();const next=[...$('records-body').querySelectorAll('[data-record-id]')].find(n=>n.dataset.recordId===anchor?.dataset.recordId);
+ if(next&&top!==undefined)window.scrollBy({top:next.getBoundingClientRect().top-top,behavior:'instant'});
+});
 $('entry-form').addEventListener('input',()=>{pendingId=null;storeDraft();});
 $('entry-form').addEventListener('submit',async e=>{
   e.preventDefault();if(busy||refreshBusy||(!demo&&!ready))return;
@@ -310,22 +405,31 @@ $('entry-form').addEventListener('submit',async e=>{
     storage.remove(draftKey());resetEntry();toast(demo?'已儲存（示範帳本）':'記錄已儲存');
   }catch(err){showError('save-error',(saving?'儲存未完成：':'')+err.message);if(saving)toast('儲存未完成，輸入內容已保留。');}finally{setBusy(false);finishLoading();}
 });
-$('cancel-edit').onclick=()=>{storage.remove(draftKey());resetEntry();};
+$('cancel-edit').onclick=()=>{storage.remove(draftKey());resetEntry();if(history.state?.recordEdit)history.back();};
 $('records-body').addEventListener('click',e=>{
+ if(e.target.closest('#records-adjust-period')){$('record-period-toggle').click();return;}
   if(busy||refreshBusy)return;
-  const edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]');
+  const del=e.target.closest('[data-delete]');
+  const edit=e.target.closest('[data-edit],[data-open-record]')||(!e.target.closest('button,a,summary,details')&&e.target.closest('[data-record-id]'));
+  if(!del&&!edit)return;
+  const editId=edit?.dataset.edit||edit?.dataset.openRecord||edit?.dataset.recordId;
   if(edit){
-    const r=displayRows().find(r=>r.id===edit.dataset.edit);if(!r)return;
+    const r=displayRows().find(r=>r.id===editId);if(!r)return;
     editing={id:r.id,updatedAt:r.updatedAt,originalYear:Number(r.date.slice(0,4)),expectedRecord:{...rows.find(raw=>raw.id===r.id)}};pendingId=r.id;setType(r.type);updateCategoryOptions(r.category);$('entry-date').value=r.date;$('entry-category').value=r.category;$('entry-amount').value=r.amount;$('entry-note').value=r.note;renderStorePicker(r.store||'');
-    $('entry-title').textContent='修改這筆記錄';$('entry-title').closest('.panel-heading').hidden=false;$('cancel-edit').hidden=false;$('save-button').textContent='✓ 儲存修改';showError('save-error','');updateDateBounds();storeDraft();navigate('#entry-panel');$('entry-amount').focus({preventScroll:true});
+    $('entry-title').textContent='修改這筆記錄';$('entry-title').closest('.panel-heading').hidden=false;$('cancel-edit').hidden=false;$('entry-delete').hidden=false;$('save-button').textContent='✓ 儲存修改';showError('save-error','');updateDateBounds();storeDraft();navigate('#entry-panel',{resetScroll:true,state:{recordEdit:true}});$('entry-title').focus({preventScroll:true});
   }
-  if(del){pendingDelete=rows.find(r=>r.id===del.dataset.delete);if(!pendingDelete)return;$('delete-description').textContent=pendingDelete.date+' · '+pendingDelete.category+' · NT$ '+money(pendingDelete.amount);showError('delete-error','');$('delete-dialog').showModal();}
+  if(del)openDelete(del.dataset.delete);
 });
+function openDelete(id){
+ pendingDelete=rows.find(r=>r.id===id);if(!pendingDelete)return;
+ $('delete-description').textContent=pendingDelete.date+' · '+pendingDelete.category+' · NT$ '+money(pendingDelete.amount);showError('delete-error','');$('delete-dialog').showModal();
+}
+$('entry-delete').onclick=()=>{if(editing&&!busy&&!refreshBusy)openDelete(editing.id);};
 $('cancel-delete').onclick=()=>$('delete-dialog').close();
 $('confirm-delete').onclick=async()=>{
   if(busy||!pendingDelete)return;setBusy(true);$('confirm-delete').disabled=true;$('cancel-delete').disabled=true;
   const preventClose=e=>e.preventDefault();$('delete-dialog').addEventListener('cancel',preventClose);
-  try{await mutate('delete',{id:pendingDelete.id},pendingDelete.updatedAt,Number(pendingDelete.date.slice(0,4)),pendingDelete);if(editing?.id===pendingDelete.id){storage.remove(draftKey());resetEntry();}$('delete-dialog').close();toast(demo?'已刪除示範記錄':'Google 試算表已確認刪除');}catch(e){showError('delete-error',e.message);}finally{setBusy(false);$('confirm-delete').disabled=false;$('cancel-delete').disabled=false;$('delete-dialog').removeEventListener('cancel',preventClose);}
+  try{await mutate('delete',{id:pendingDelete.id},pendingDelete.updatedAt,Number(pendingDelete.date.slice(0,4)),pendingDelete);if(editing?.id===pendingDelete.id){storage.remove(draftKey());resetEntry();}$('delete-dialog').close();if(location.hash==='#entry-panel')navigate('#transactions');toast(demo?'已刪除示範記錄':'Google 試算表已確認刪除');}catch(e){showError('delete-error',e.message);}finally{setBusy(false);$('confirm-delete').disabled=false;$('cancel-delete').disabled=false;$('delete-dialog').removeEventListener('cancel',preventClose);}
 };
 function download(content,name,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 const diagnosticsPanel=document.createElement('section');
@@ -400,12 +504,12 @@ $('settings-form').onsubmit=async e=>{
   try{
     candidate=settingsConnection();rememberConnectionDraft();
     const nextRows=await request(candidate,'list');
-    config=candidate;demo=false;ready=true;storeScope='*';rows=nextRows;lastSync=Date.now();syncFailed=false;page=1;
+    config=candidate;demo=false;ready=true;storeScope='*';rows=nextRows;lastSync=Date.now();syncFailed=false;page=1;recordLimit=20;tableContext='';
     storage.set('jelly-connection-'+config.sheet,config);storage.set('jelly-pwa-sheet',config.sheet);const url=new URL(location.href);url.searchParams.set('sheet',config.sheet);url.searchParams.delete('api');url.hash='overview';history.replaceState(null,'',url);resetEntry(true);activateDestination('#overview');$('settings-dialog').close();toast('已連接 Google 試算表，可以開始記帳！');
   }catch(err){showError('settings-error',err.message+'\n輸入內容已保留，可按「檢查連線」取得逐項結果。');}finally{refreshBusy=false;button.disabled=false;button.textContent='連接並載入帳本 →';$('close-settings').disabled=false;$('demo-button').disabled=false;$('diagnose-button').disabled=false;$('settings-dialog').removeEventListener('cancel',preventClose);}
 };
 $('demo-button').onclick=()=>{
-  if(busy||refreshBusy)return;storage.remove('jelly-pwa-sheet');annualCoverage=annualWindow(today);demo=true;ready=true;config=null;storeScope='*';reportVisibilitySupported=false;page=1;lastSync=null;syncFailed=false;loadDemo();catalog=ensureCatalog(storage.get('jelly-catalog-demo-v1'),rows);catalogSupported=true;const url=new URL(location.href);url.search='';url.hash='overview';history.replaceState(null,'',url);resetEntry(true);activateDestination('#overview');$('settings-dialog').close();toast('已開啟示範帳本，記錄僅保存在此裝置。');
+  if(busy||refreshBusy)return;storage.remove('jelly-pwa-sheet');annualCoverage=annualWindow(today);demo=true;ready=true;config=null;storeScope='*';reportVisibilitySupported=false;page=1;recordLimit=20;tableContext='';lastSync=null;syncFailed=false;loadDemo();catalog=ensureCatalog(storage.get('jelly-catalog-demo-v1'),rows);catalogSupported=true;const url=new URL(location.href);url.search='';url.hash='overview';history.replaceState(null,'',url);resetEntry(true);activateDestination('#overview');$('settings-dialog').close();toast('已開啟示範帳本，記錄僅保存在此裝置。');
 };
 $('copy-link').onclick=async()=>{
   if(!config?.api)return;
@@ -432,7 +536,7 @@ async function init(){
   }else if(demo){loadDemo();catalog=ensureCatalog(storage.get('jelly-catalog-demo-v1'),rows);catalogSupported=true;}
   else catalog=ensureCatalog(null,[]);
   resetEntry(true);render();
-  activateDestination(location.hash);
+  activateDestination(location.hash,{fromHistory:true});
   if(initialError){openSettings();showError('settings-error',initialError);}
   else if(!demo){
    if(config.api&&config.key){
@@ -448,15 +552,33 @@ async function init(){
 function renderManagement(){
  const locked=catalogBusy||busy||refreshBusy;
  $('catalog-status').textContent=!demo&&!catalogSupported?'管理門市與分類前，請先更新連接程式。':'';$('catalog-status').hidden=!$('catalog-status').textContent;
- $('catalog-type-field').hidden=managementKind!=='categories';$('catalog-add-button').textContent=managementKind==='stores'?'新增門市':'新增分類';$('catalog-name').placeholder=managementKind==='stores'?'例如：台南店':'例如：人事';
+ $('catalog-add-button').textContent=managementKind==='stores'?'＋ 新增門市':'＋ 新增分類';
  $('management-tabs').querySelectorAll('button').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.manage===managementKind));b.disabled=locked;});
- $('catalog-list').innerHTML=catalog[managementKind].map(item=>`<article class="catalog-item" data-catalog-item="${item.id}"><div class="catalog-identity"><strong>${escapeHtml(item.name)}</strong><small>${managementKind==='categories'?(item.type==='income'?'收入':'支出')+' · ':''}${item.active?'啟用中':'已停用'}${catalog.defaultStore===item.id?' · 預設記帳':''}</small></div><div class="catalog-options"><div class="catalog-actions"><button type="button" class="text-button" data-catalog-edit="${item.id}">改名</button>${managementKind==='stores'&&item.active&&catalog.defaultStore!==item.id?`<button type="button" class="text-button" data-catalog-default="${item.id}">設為預設</button>`:''}<button type="button" class="text-button" data-catalog-toggle="${item.id}">${item.active?'停用':'啟用'}</button></div>${managementKind==='stores'?`<label class="report-hidden-toggle catalog-report-toggle"><input type="checkbox" data-catalog-hidden="${item.id}" ${item.hiddenFromReports?'checked':''} aria-label="${escapeHtml(item.name)}：查看門市時預設不選取"><span>報表預設排除</span></label>`:''}</div></article>`).join('')||`<p class="report-empty">尚無${managementKind==='stores'?'門市':'分類'}，點上方新增。</p>`;
- $('catalog-add').querySelectorAll('button,input,select').forEach(el=>el.disabled=locked);
- $('catalog-list').querySelectorAll('button,input').forEach(el=>el.disabled=locked);
+ $('catalog-list').setAttribute('aria-busy',String(catalogBusy));
+ $('catalog-list').innerHTML=catalogItems(pendingCatalog||catalog,managementKind).map(item=>`<article class="catalog-row" data-sort-id="${item.id}" data-sort-group="${managementKind==='categories'?item.type:'stores'}"><button type="button" class="catalog-item" data-catalog-edit="${item.id}" aria-label="編輯${escapeHtml(item.name)}"><span class="catalog-identity">${managementKind==='categories'?`<span class="type-tag ${item.type==='expense'?'expense-tag':''}">${item.type==='income'?'收入':'支出'}</span>`:''}<strong>${escapeHtml(item.name)}</strong><small>${!item.active?'已停用':catalog.defaultStore===item.id?'預設記帳':'啟用中'}${item.hiddenFromReports?' · 報表預設排除':''}</small></span><span class="catalog-chevron" aria-hidden="true">›</span></button><button type="button" class="catalog-sort-handle" data-sort-handle="${item.id}" aria-label="拖拉排序${escapeHtml(item.name)}，亦可使用上下方向鍵"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button></article>`).join('')||`<p class="report-empty">尚無${managementKind==='stores'?'門市':'分類'}，點上方新增。</p>`;
+ $('catalog-add-button').disabled=locked;
+ $('catalog-list').querySelectorAll('button').forEach(el=>el.disabled=locked);
+ if($('catalog-dialog').open){
+  $('catalog-edit-form').querySelectorAll('input,select,button').forEach(el=>el.disabled=locked);
+  $('catalog-edit-type').disabled=locked||!!catalogEditing?.id;
+  $('catalog-edit-default').disabled=locked||!$('catalog-edit-active').checked;
+ }
 }
-async function saveCatalog(next){
+const catalogSorter=setupCatalogSort({
+ list:$('catalog-list'),isLocked:()=>catalogBusy||busy||refreshBusy,
+ onCancel:renderManagement,onError:error=>showError('catalog-error','排序未儲存，已恢復原順序。'+error.message),
+ onMove:async(id,position)=>{
+  const list=catalogItems(catalog,managementKind),index=list.findIndex(item=>item.id===id);
+  if(index<0||position===index)return;
+  const item=list[index],next=moveCatalogItem(catalog,managementKind,id,position);
+  showError('catalog-error','');
+  await saveCatalog(next,{optimistic:true,message:item.name+'已移至第 '+(position+1)+' 位'});
+ }
+});
+async function saveCatalog(next,{optimistic=false,message='管理設定已儲存，歷史帳目保留。'}={}){
  if(busy||refreshBusy||catalogBusy)throw Error('帳本正在同步，請稍候。');
- const clean=validateCatalog(next);catalogBusy=true;setBusy(true);renderManagement();
+ const clean=validateCatalog(next);pendingCatalog=optimistic?clean:null;catalogBusy=true;setBusy(true);
+ $('catalog-sort-status').textContent=optimistic?'正在儲存順序…':'';$('catalog-sort-status').hidden=!optimistic;renderManagement();
  try{
   if(demo){storage.set(catalogKey(),clean);catalog=clean;}
   else{
@@ -465,30 +587,68 @@ async function saveCatalog(next){
    if(!catalogSupported){const {data}=await sendGoogle(config,'diagnose');assertGoogleReply(data);if(Number(data.version)<4)throw Error('門市與分類管理需要 Code.gs v4。請到「試算表連接設定」保留原 ID 與密碼，重新下載並部署新版本。');}
    const {data}=await sendGoogle(config,'catalog',{catalog:clean,expectedRevision:catalogRevision});assertGoogleReply(data);
    const confirmed=validateCatalog(data.catalog);
+   if(['stores','categories'].some(kind=>clean[kind].map(item=>item.id).join(',')!==confirmed[kind].map(item=>item.id).join(',')))throw Error('連接程式未確認管理排序，請重新整理帳本後再試。');
    if(clean.stores.some(s=>confirmed.stores.find(next=>next.id===s.id)?.hiddenFromReports!==s.hiddenFromReports))throw Error('連接程式未確認門市報表隱藏設定，請更新 Code.gs 並重新整理帳本。');
    catalog=confirmed;catalogRevision=data.catalogRevision;catalogSupported=true;lastSync=Date.now();storage.set(catalogKey(),catalog);
    await ledgerCache.write(config,{rows,window:annualCoverage,catalog,catalogRevision,catalogSupported,reportVisibilitySupported});
   }
-  render();toast('管理設定已儲存，歷史帳目保留。');
- }finally{catalogBusy=false;setBusy(false);renderManagement();}
+  render();toast(message);
+ }finally{pendingCatalog=null;catalogBusy=false;$('catalog-sort-status').hidden=true;setBusy(false);renderManagement();}
 }
-$('management-tabs').onclick=e=>{const b=e.target.closest('[data-manage]');if(b){managementKind=b.dataset.manage;showError('catalog-error','');renderManagement();}};
-$('catalog-add').onsubmit=async e=>{e.preventDefault();try{const next=structuredClone(catalog);next[managementKind].push({id:crypto.randomUUID(),name:$('catalog-name').value.trim(),aliases:[],active:true,...(managementKind==='categories'?{type:$('catalog-type').value}: {})});await saveCatalog(next);$('catalog-name').value='';showError('catalog-error','');renderManagement();$('catalog-name').focus();}catch(err){showError('catalog-error',err.message);}};
-$('catalog-list').onclick=async e=>{
- const edit=e.target.closest('[data-catalog-edit]'),toggle=e.target.closest('[data-catalog-toggle]'),def=e.target.closest('[data-catalog-default]');
- if(edit){catalogEditing={kind:managementKind,id:edit.dataset.catalogEdit};$('catalog-edit-name').value=catalog[managementKind].find(x=>x.id===catalogEditing.id).name;showError('catalog-edit-error','');$('catalog-dialog').showModal();}
- if(toggle||def)try{const id=toggle?toggle.dataset.catalogToggle:def.dataset.catalogDefault,item=catalog[managementKind].find(x=>x.id===id);await saveCatalog(editCatalog(catalog,{kind:managementKind,id,...(toggle?{active:!item.active}:{makeDefault:true})}));showError('catalog-error','');}catch(err){showError('catalog-error',err.message);}finally{const id=toggle?toggle.dataset.catalogToggle:def.dataset.catalogDefault;$('catalog-list').querySelector('[data-catalog-toggle="'+id+'"]')?.focus({preventScroll:true});}
+$('management-tabs').onclick=e=>{const b=e.target.closest('[data-manage]');if(b&&!catalogBusy&&!busy&&!refreshBusy){catalogSorter.cancel();managementKind=b.dataset.manage;showError('catalog-error','');renderManagement();}};
+function catalogEditorValues(){return {name:$('catalog-edit-name').value,type:$('catalog-edit-type').value,active:$('catalog-edit-active').checked,makeDefault:$('catalog-edit-default').checked,hiddenFromReports:$('catalog-edit-hidden').checked};}
+function openCatalogEditor(id=null){
+ if(busy||refreshBusy||catalogBusy)return;
+ const item=id?catalog[managementKind].find(item=>item.id===id):null;
+ catalogEditing={kind:managementKind,id};
+ $('catalog-editor-title').textContent=(id?'':'新增')+(managementKind==='stores'?'門市':'分類')+(id?'設定':'');
+ $('catalog-edit-name').value=item?.name||'';
+ $('catalog-edit-name').placeholder=managementKind==='stores'?'例如：台南店':'例如：人事';
+ $('catalog-edit-type-field').hidden=managementKind!=='categories';
+ $('catalog-edit-type').value=item?.type||'expense';
+ $('catalog-edit-active').checked=item?.active??true;
+ $('catalog-edit-default').checked=!!id&&catalog.defaultStore===id;
+ $('catalog-edit-hidden').checked=item?.hiddenFromReports??false;
+ $('catalog-store-settings').hidden=managementKind!=='stores';
+ showError('catalog-edit-error','');
+ catalogSnapshot=JSON.stringify(catalogEditorValues());catalogScroll=window.scrollY;
+ history.pushState({...history.state,catalogEditor:true},'',location.href);
+ $('catalog-dialog').showModal();renderManagement();
+ // Avoid opening the software keyboard until the name field is explicitly selected.
+ $('catalog-edit-cancel').focus({preventScroll:true});
+}
+function closeCatalogEditor(){
+ if(catalogBusy||busy||refreshBusy)return false;
+ if(JSON.stringify(catalogEditorValues())!==catalogSnapshot&&!confirm('尚未儲存設定，要放棄修改嗎？'))return false;
+ $('catalog-dialog').close();return true;
+}
+$('catalog-add-button').onclick=()=>openCatalogEditor();
+$('catalog-list').onclick=e=>{const button=e.target.closest('[data-catalog-edit]');if(button&&!button.disabled)openCatalogEditor(button.dataset.catalogEdit);};
+$('catalog-edit-active').onchange=()=>{if(!$('catalog-edit-active').checked)$('catalog-edit-default').checked=false;$('catalog-edit-default').disabled=!$('catalog-edit-active').checked;};
+$('catalog-edit-cancel').onclick=closeCatalogEditor;
+$('catalog-dialog').addEventListener('cancel',e=>{e.preventDefault();closeCatalogEditor();});
+$('catalog-dialog').addEventListener('close',()=>{
+ restoreCatalogScroll();
+ if(history.state?.catalogEditor){catalogReturn=true;history.back();}
+ const selector=catalogEditing?.id?'[data-catalog-edit="'+catalogEditing.id+'"]':null;
+ (selector?$('catalog-list').querySelector(selector):$('catalog-add-button'))?.focus({preventScroll:true});
+});
+$('catalog-edit-form').onsubmit=async e=>{
+ e.preventDefault();if(catalogBusy||busy||refreshBusy)return;
+ const values=catalogEditorValues(),{kind,id}=catalogEditing;
+ try{
+  let next;
+  if(id){
+   next=editCatalog(catalog,{kind,id,name:values.name,active:values.active,makeDefault:values.makeDefault,hiddenFromReports:values.hiddenFromReports});
+   if(kind==='stores'&&!values.makeDefault&&next.defaultStore===id)next.defaultStore='';
+  }else{
+   next=structuredClone(catalog);const newId=crypto.randomUUID();
+   next[kind].push({id:newId,name:values.name.trim(),aliases:[],active:values.active,...(kind==='categories'?{type:values.type}:{hiddenFromReports:values.hiddenFromReports})});
+   if(kind==='stores'&&values.makeDefault&&values.active)next.defaultStore=newId;
+  }
+  await saveCatalog(next);catalogSnapshot=JSON.stringify(catalogEditorValues());$('catalog-dialog').close();
+ }catch(err){showError('catalog-edit-error',err.message);}
 };
-$('catalog-list').onchange=async e=>{
- const input=e.target.closest('[data-catalog-hidden]');if(!input)return;
- try{await saveCatalog(editCatalog(catalog,{kind:'stores',id:input.dataset.catalogHidden,hiddenFromReports:input.checked}));showError('catalog-error','');}
- catch(err){renderManagement();showError('catalog-error',err.message);}
- finally{$('catalog-list').querySelector('[data-catalog-hidden="'+input.dataset.catalogHidden+'"]')?.focus({preventScroll:true});}
-};
-$('catalog-edit-cancel').onclick=()=>{if(!catalogBusy)$('catalog-dialog').close();};
-$('catalog-dialog').addEventListener('close',()=>$('catalog-list').querySelector('[data-catalog-edit="'+catalogEditing?.id+'"]')?.focus({preventScroll:true}));
-$('catalog-dialog').addEventListener('cancel',e=>{if(catalogBusy)e.preventDefault();});
-$('catalog-edit-form').onsubmit=async e=>{e.preventDefault();$('catalog-edit-save').disabled=true;try{await saveCatalog(editCatalog(catalog,{...catalogEditing,name:$('catalog-edit-name').value}));$('catalog-dialog').close();}catch(err){showError('catalog-edit-error',err.message);}finally{$('catalog-edit-save').disabled=false;}};
 // A validated local snapshot lets init finish while its Google refresh runs in the background.
 new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
   .then(init)

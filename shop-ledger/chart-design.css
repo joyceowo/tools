@@ -161,7 +161,7 @@ svg.report-series-key,#trend-chart svg.report-series-key{display:inline-block;wi
 #store-ranking .comparison-money-axis{order:2}
 #store-ranking .store-period-pages{order:3}
 
-#report-back,#report-menu .report-calendar-link{color:var(--muted)}
+#report-back{color:var(--muted)}
 #report-workspace .monthly-nav button,#report-workspace .year-chart-month-nav button,
 #report-workspace .store-period-pages button,#overview .year-chart-month-nav button{color:var(--ink)}
 #overview .text-button{color:var(--muted)}

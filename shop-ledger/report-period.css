@@ -1,0 +1,18 @@
+/* Report queries share one compact row above the comparison modes. */
+#report-period-bar{margin:0 0 8px;padding:8px 0;background:var(--page-bg,#F4F2F7);border-bottom:1px solid var(--line)}
+#report-year-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;max-width:400px;margin:auto}
+#report-period-bar button{min-height:44px;min-width:44px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-size:16px;line-height:1.4;cursor:pointer}
+#report-period-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;max-width:400px;margin:auto}
+#report-year-controls button,#report-period-options button{color:var(--muted)}
+#report-year-controls button[aria-pressed=true],#report-period-options button[aria-pressed=true]{background:#fff;border-color:var(--purple);color:var(--purple);font-weight:600}
+#report-period-bar [hidden]{display:none}
+#report-period-bar :focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+@media(max-width:760px){
+ #report-period-bar{position:sticky;top:var(--app-header-height,69px);z-index:18;margin:0 0 8px;padding:8px 0}
+ html:has(body.report-detail-page){scroll-padding-top:calc(var(--app-header-height,69px) + var(--report-toolbar-height,61px) + 8px)}
+}
+@media(forced-colors:active){
+ #report-period-bar{background:Canvas;color:CanvasText}
+ #report-period-bar button{color:ButtonText;border-color:ButtonText}
+ #report-year-controls button[aria-pressed=true],#report-period-options button[aria-pressed=true]{border:2px solid Highlight;color:Highlight}
+}

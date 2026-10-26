@@ -8,8 +8,10 @@ export function checkedRange(start,end,asOf){
 export function presetRange(value,today){
   const year=today.slice(0,4),month=today.slice(0,7);return value==='lastyear'?{start:(Number(year)-1)+'-01-01',end:(Number(year)-1)+'-12-31'}:value==='today'?{start:today,end:today}:value==='week'?{start:shiftDay(today,-6),end:today}:value==='year'?{start:year+'-01-01',end:today}:{start:month+'-01',end:today};
 }
-export function limitedReportPeriod(range,today){
- for(const value of ['month','year','lastyear']){
+export function limitedReportPeriod(range,today,preferred){
+ const values=['month','year','lastyear'];
+ if(values.includes(preferred))values.unshift(...values.splice(values.indexOf(preferred),1));
+ for(const value of values){
   const preset=presetRange(value,today);
   if(range.start===preset.start&&range.end===preset.end)return {value,range:preset};
  }

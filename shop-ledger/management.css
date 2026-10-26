@@ -1,27 +1,57 @@
-/* Keep store details and editing controls directly accessible in compact rows. */
-.catalog-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+/* Catalog overview opens a focused, transactional settings editor. */
+.catalog-toolbar{display:flex;align-items:center;margin-bottom:8px}
 .catalog-toolbar #management-tabs{flex:1;min-width:0;margin:0;background:#fff;border:1px solid var(--line);padding:3px}
 .catalog-toolbar #management-tabs button{min-width:0;color:var(--muted);background:none}
 .catalog-toolbar #management-tabs button[aria-pressed=true]{color:var(--purple);background:none;box-shadow:inset 0 -2px var(--purple);font-weight:700}
-.management-panel #catalog-add{align-items:end;margin:8px 0;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.management-panel .catalog-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;padding:8px 0;border-bottom:1px solid var(--line)}
-.catalog-identity{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;min-width:0}
-.catalog-identity strong{display:block;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
-.catalog-identity small{margin:0;font-size:13px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
-.catalog-options{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;min-width:0}
-.catalog-options .catalog-actions{display:flex;flex:1;width:auto;gap:4px;flex-wrap:nowrap}
-.catalog-options .catalog-actions button{flex:1;min-width:44px;min-height:44px;margin:0;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:14px;white-space:nowrap}
-.catalog-options .catalog-report-toggle{display:flex;flex-basis:auto;min-height:44px;margin:0;white-space:nowrap}
-.catalog-toolbar :focus-visible,.catalog-item :focus-visible{outline:2px solid var(--purple);outline-offset:2px}
-.catalog-toolbar button:disabled,.catalog-options button:disabled{opacity:.5;cursor:default}
+.catalog-add-trigger{display:block;min-height:48px;width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;color:var(--purple);font-family:inherit;font-size:16px;font-weight:600;text-align:left;cursor:pointer}
+.management-panel .catalog-item{display:flex;justify-content:space-between;align-items:center;gap:16px;width:100%;min-height:76px;padding:14px 0;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;color:var(--ink);text-align:left;cursor:pointer}
+.catalog-identity{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}
+.catalog-identity strong{font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+.catalog-identity small{display:block;flex-basis:100%;margin:0;font-size:13px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+.catalog-identity .type-tag{display:inline-block;font-size:12px;font-weight:600;line-height:1.5}
+.catalog-chevron{flex:none;font-size:24px;color:var(--muted)}
+.catalog-item:disabled,.catalog-add-trigger:disabled{opacity:.5;cursor:default}
+.catalog-item:focus-visible,.catalog-add-trigger:focus-visible,#catalog-dialog :focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+#catalog-dialog{padding:0;width:calc(100% - 32px);max-width:520px;max-height:calc(100dvh - 48px);overflow:hidden;background:var(--page-bg,#F4F2F7);color:var(--ink)}
+#catalog-dialog[open]{display:flex;flex-direction:column}
+#catalog-edit-form{display:flex;flex-direction:column;min-height:0;max-height:inherit;width:100%}
+.catalog-editor-header{display:grid;grid-template-columns:minmax(64px,1fr) auto minmax(64px,1fr);align-items:center;gap:8px;flex:none;padding:12px 16px;border-bottom:1px solid var(--line);background:#fff}
+#catalog-editor-title{margin:0;font-size:18px;line-height:1.5;text-align:center}
+.catalog-back{justify-self:start;min-height:44px;padding:4px 0;border:0;background:none;color:var(--ink);font:inherit;cursor:pointer;white-space:nowrap}
+#catalog-edit-save{justify-self:end;min-height:44px;padding:8px 12px;font-size:15px}
+.catalog-editor-body{overflow:auto;overscroll-behavior:contain;padding:8px 20px 28px;min-height:0}
+.catalog-editor-body .field{display:grid;gap:8px;margin:20px 0;font-size:15px;color:var(--ink)}
+.catalog-editor-body input:not([type=checkbox]),.catalog-editor-body select{min-width:0;width:100%;min-height:48px;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-size:16px}
+.catalog-setting{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:56px;padding:10px 0;border-bottom:1px solid var(--line);font-size:16px;line-height:1.5}
+.catalog-setting input{appearance:none;flex:none;width:44px;height:28px;border:1px solid #94839F;border-radius:16px;background:#E1DCE7;position:relative;cursor:pointer}
+.catalog-setting input::after{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 1px 2px #28243333}
+.catalog-setting input:checked{background:var(--purple);border-color:var(--purple)}
+.catalog-setting input:checked::after{left:19px}
+.catalog-setting input:disabled{opacity:.45;cursor:default}
+.sync-actions .button{background:white;color:var(--ink);border:1px solid var(--line);box-shadow:none}
 @media(max-width:760px){
- .catalog-toolbar{gap:10px}
+ .management-panel{padding:16px;margin-bottom:16px}
  .catalog-toolbar #management-tabs button{font-size:15px}
- .management-panel #catalog-add>label{min-width:0}
- .management-panel #catalog-add>.button{padding-inline:12px}
- .management-panel .catalog-item{grid-template-columns:minmax(0,1fr);gap:4px}
- .catalog-options .catalog-actions{min-width:158px}
+ #catalog-dialog{position:fixed;inset:0;margin:0;width:100%;max-width:none;height:100dvh;max-height:100dvh;border:0;border-radius:0}
+ #catalog-edit-form{height:100%;max-height:100%}
+ .catalog-editor-header{padding:calc(8px + env(safe-area-inset-top)) 16px 8px}
+ .catalog-editor-body{flex:1;padding-bottom:calc(28px + env(safe-area-inset-bottom))}
 }
 @media(forced-colors:active){
- .catalog-toolbar #management-tabs button[aria-pressed=true]{outline:2px solid Highlight;outline-offset:-2px;box-shadow:none}
+ .catalog-toolbar #management-tabs button[aria-pressed=true]{outline:2px solid Highlight;outline-offset:-2px}
+ .catalog-setting input{appearance:auto;width:44px;height:28px}
+ .catalog-setting input::after{display:none}
 }
+
+.catalog-row{display:flex;align-items:center;border-bottom:1px solid var(--line);gap:4px}
+#catalog-list{position:relative}
+.management-panel .catalog-row .catalog-item,.catalog-drag-preview .catalog-item{flex:1;min-width:0;border-bottom:0}
+.catalog-sort-handle{flex:none;display:grid;place-items:center;width:44px;min-height:48px;border:0;border-radius:8px;background:none;color:var(--muted);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.catalog-sort-handle svg{width:24px;height:24px;pointer-events:none}
+.catalog-sort-handle:focus-visible{outline:2px solid var(--purple);outline-offset:-2px}
+.catalog-sort-handle:disabled{opacity:.45;cursor:default}
+.catalog-dragging{outline:2px dashed var(--purple);outline-offset:-2px;background:#F3F1F8}
+.catalog-dragging>*{visibility:hidden}
+.catalog-drag-preview{position:fixed;z-index:30;pointer-events:none;background:#fff;outline:2px solid var(--purple);border-radius:8px;box-shadow:0 8px 24px #28243326}
+.catalog-drag-preview .catalog-item{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:76px;padding:14px 0;background:none;border:0;color:var(--ink);text-align:left}
+.catalog-dragging .catalog-sort-handle{cursor:grabbing}

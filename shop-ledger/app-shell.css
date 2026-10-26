@@ -1,0 +1,73 @@
+/* Shared heading and status stay together on every page, including report details. */
+.app-header .app-heading{display:flex;align-items:center;gap:8px;min-width:0}
+.app-header #page-title{white-space:nowrap}
+.app-header #mode-badge{flex:none;font-size:10px;line-height:1.4;padding:4px 6px;max-width:none;white-space:nowrap}
+.app-heading #report-back{display:flex;align-items:center;justify-content:center;flex:0 0 44px;min-width:44px;min-height:44px;padding:0;font-size:0}
+.app-heading #report-back::before{content:"←";font-size:22px}
+/* A shared navigation bar sits below the system status area. */
+.sidebar nav a>svg{width:24px;height:24px;flex:none}
+.mobile-nav a>svg{width:24px;height:24px;flex:none}
+@media(max-width:760px){
+ .app-header,body:has(#annual:not([hidden]) .compact-reports) .app-header{position:sticky;top:0;z-index:19;min-height:calc(69px + env(safe-area-inset-top));padding:calc(12px + env(safe-area-inset-top)) 18px 12px;background:#F4F2F7;border-bottom:1px solid var(--line);gap:12px}
+ .app-header h1,body:has(#annual:not([hidden]) .compact-reports) .app-header h1{font-size:23px;line-height:1.4;margin:0}
+ #app-main{padding-top:16px}
+ .mobile-nav a.active:not(.entry-link){background:none;color:var(--purple)}
+ .mobile-nav a.active:not(.entry-link)>svg{stroke-width:2.2}
+ .mobile-nav a.active:not(.entry-link)::after{content:'';width:18px;height:2px;background:currentColor;border-radius:2px}
+ .mobile-nav a:not(.active)::after,.mobile-nav .entry-link::after{content:'';height:2px}
+}
+@media(display-mode:standalone) and (max-width:760px){
+ .app-header,body:has(#annual:not([hidden]) .compact-reports) .app-header{padding-top:calc(12px + env(safe-area-inset-top))}
+}
+
+/* Keep the save action reachable above navigation and the software keyboard. */
+.entry-actions{grid-column:1/-1}
+.entry-delete{grid-column:1/-1;justify-self:start;min-height:44px;color:var(--muted);margin-top:8px}
+#entry-panel .inline-link{display:inline-flex;align-items:center;min-height:44px;padding-block:8px}
+#entry-amount{min-height:44px}
+#entry-title:focus{outline:none}
+.calendar-amount-compact{display:none}
+@media(max-width:760px){
+ #entry-panel #entry-form{padding-bottom:110px}
+ #entry-panel .entry-actions{position:fixed;z-index:21;left:14px;right:14px;bottom:var(--mobile-nav-height,80px);padding:10px 16px;background:#fff;border:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -3px 12px #2824330d}
+ #entry-panel .entry-actions .save-button{margin:0;min-height:48px;box-shadow:none}
+ #entry-panel .entry-actions .cancel-edit{min-height:44px;margin:4px auto 0}
+ .keyboard-open #entry-panel .entry-actions{bottom:var(--keyboard-inset,0px)}
+ .keyboard-open .mobile-nav{visibility:hidden;pointer-events:none}
+ body:has(#entry-panel:not([hidden])) .toast{bottom:calc(var(--mobile-nav-height,80px) + 90px)}
+ #calendar-panel .calendar-amount-full{display:none}
+ #calendar-panel .calendar-amount-compact{display:inline;white-space:nowrap}
+}
+@media(max-width:360px){
+ #overview #calendar-panel{margin-inline:-14px;width:calc(100% + 28px);padding:10px 4px}
+ #calendar-panel .calendar-heading{padding-inline:10px}
+ #calendar-panel .calendar-weekdays,#calendar-panel .revenue-calendar{gap:0}
+ #calendar-panel .revenue-day{border:2px solid #fff;border-radius:8px;min-width:0}
+}
+/* Motion communicates state and is suppressed for reduced-motion preferences. */
+@media(prefers-reduced-motion:no-preference){
+ button,.mobile-nav a{transition:background-color 120ms ease,color 120ms ease,box-shadow 120ms ease}
+ .catalog-setting input::after{transition:left 160ms ease}
+ #store-scope-dialog[open]{animation:mobile-sheet-in 180ms ease-out}
+ #catalog-dialog[open]{animation:mobile-editor-in 180ms ease-out}
+ @keyframes mobile-sheet-in{from{opacity:.5;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+ @keyframes mobile-editor-in{from{opacity:.5;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+}
+button:active:not(:disabled),.mobile-nav a:active{filter:brightness(.96)}
+@media(forced-colors:active){
+ .entry-actions{background:Canvas!important;color:CanvasText}
+ .catalog-dragging,.catalog-drag-preview{outline-color:Highlight;background:Canvas}
+}
+
+/* Realbyte reference: only the selected type has an accent; other options stay gray. */
+.entry-type{gap:10px;padding:0;background:none}
+.entry-type button{padding-inline:12px;font-weight:500;white-space:nowrap;background:#F2F1F4;color:var(--muted);border:2px solid var(--line)}
+.entry-type .selected{background:#fff;border-color:currentColor;outline:none;box-shadow:none;font-weight:700}
+.entry-type [data-type="income"].selected{color:var(--green)}
+.entry-type [data-type="expense"].selected{color:var(--peach)}
+.entry-type-icon{color:inherit}
+.entry-type button:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
+@media(forced-colors:active){
+ .entry-type [data-type]{background:ButtonFace;color:ButtonText;border-color:ButtonText}
+ .entry-type [data-type].selected{background:Canvas;color:Highlight;border-color:Highlight;outline:2px solid Highlight;outline-offset:2px}
+}

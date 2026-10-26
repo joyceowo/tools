@@ -7,7 +7,6 @@
 .report-picker strong{display:block;font-size:19px;line-height:1.5}
 .report-picker small{display:block;font-size:14px;color:var(--muted);line-height:1.7;margin-top:5px}
 .report-menu-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:13px;background:#eee6f8;color:var(--purple-dark);font-size:30px;line-height:1}
-.report-calendar-link{display:flex;justify-content:space-between;align-items:center;min-height:56px;padding:16px 4px;margin-top:14px;font-size:14px;color:var(--purple-dark)}
 .report-detail-header{margin-bottom:8px}
 #report-back{padding:0 4px;color:var(--purple);font-size:15px;text-align:left}
 #report-title{font-size:24px;margin:8px 0 0;line-height:1.5}
@@ -158,26 +157,6 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 .report-hidden-toggle input:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
 .catalog-report-toggle{flex-basis:100%}
 
-.monthly-quick-filters:not([hidden]){display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);align-items:start;gap:8px;margin:0 0 8px}
-#monthly-quick-filters #scope-panel,#monthly-quick-filters #monthly-year-settings{min-width:0;border:0;border-radius:0;background:none;padding:0;margin:0;box-shadow:none}
-#monthly-quick-filters .controls{display:block;margin:0;min-width:0}
-#monthly-quick-filters label{display:block;width:100%;margin:0;min-width:0}
-#monthly-quick-filters [hidden]{display:none}
-#monthly-quick-filters select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:44px;margin:0;padding:8px 28px 8px 10px;font-size:16px;line-height:1.4;background-color:#fff;color:var(--ink)}
-#monthly-quick-filters .scope-field-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-
-/* Annual comparisons keep scope controls and exact values close to the plot. */
-#annual-quick-filters #scope-panel,#annual-quick-filters #report-year-settings{min-width:0;border:0;border-radius:0;background:none;padding:0;margin:0;box-shadow:none}
-#annual-quick-filters .controls{display:block;margin:0;min-width:0}
-#annual-quick-filters label{display:block;width:100%;margin:0;min-width:0}
-#annual-quick-filters select,.annual-chart-controls select{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:44px;margin:0;padding:8px 28px 8px 10px;font-size:16px;line-height:1.4;background-color:#fff;color:var(--ink)}
-#annual-quick-filters .scope-field-label,.annual-chart-controls .scope-field-label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-#annual-quick-filters[data-mode=period]{grid-template-columns:minmax(0,1fr)}
-#annual-quick-filters[data-mode=period] #scope-panel>.controls{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px}
-#annual-quick-filters .store-comparison-scope>.controls>label:first-child{grid-column:1/-1}
-#annual-quick-filters #range-details>summary{display:none}
-#annual-quick-filters #range-details .controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
-#annual-quick-filters #range-apply{grid-column:1/-1}
 #report-years .annual-chart-controls{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:8px;margin:0 0 6px;align-items:start}
 #report-years .annual-chart-controls>label{min-width:0;max-width:none;margin:0}
 #report-years #comparison-view{margin-bottom:8px}
@@ -193,9 +172,6 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 #report-years .period-values-table td{font-family:Arial,sans-serif}
 #report-years .period-values-table .negative-amount{color:var(--peach)}
 @media(max-width:760px){
- .annual-comparison-page .app-header{padding:12px 16px 4px}
- .annual-comparison-page .app-header>div>p{display:none}
- .annual-comparison-page .app-header h1{font-size:22px}
  .annual-comparison-page #app-main{padding-top:4px}
  .annual-comparison-page .app-status{margin:2px 0 6px}
  .annual-comparison-page .report-detail-header{margin-bottom:4px}
@@ -211,9 +187,6 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 }
 
 @media(max-width:760px){
- .annual-comparison-page .app-header>div{display:flex;align-items:center;gap:4px;min-width:0}
- .annual-comparison-page #report-back{flex:0 0 44px;min-width:44px;min-height:44px;padding:0;font-size:0}
- .annual-comparison-page #report-back::before{content:'←';font-size:22px}
  .annual-comparison-page .report-detail-header{margin:0}
  .annual-comparison-page #report-years .year-chart-readout{margin-top:4px;padding-top:4px}
  .annual-comparison-page #report-years .year-chart-month-nav{margin-bottom:0}
@@ -227,14 +200,7 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 #report-years .period-values-table tr{display:table-row}
 #report-years .period-values-table th,#report-years .period-values-table td{display:table-cell;background:none;white-space:normal}
 #report-years .period-values-table caption{width:auto}
-@media(min-width:761px){
- .annual-comparison-page .app-header>div{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:4px 12px}
- .annual-comparison-page .app-header>div>p{grid-column:1/-1}
-}
 @media(max-width:360px){
- .annual-comparison-page .app-header{gap:4px;padding-inline:14px}
- .annual-comparison-page .app-header h1{font-size:20px;white-space:nowrap}
- .annual-comparison-page .app-header .badge{white-space:nowrap;flex-shrink:0;padding-inline:8px;font-size:11px}
  #report-years .period-values-table th,#report-years .period-values-table td{font-size:14px;padding-inline:2px}
  #report-years .period-values-table thead th{font-size:13px}
 }
@@ -309,8 +275,6 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 .store-period-table .store-period-store th{padding:2px 0 0}
 .store-period-table .store-period-chart-row td{padding:0 0 4px}
 .store-period-table .store-period-item tr:last-child>*{border-bottom:1px solid var(--line);padding-bottom:6px}
-.store-yoy-page #annual-quick-filters[data-mode=period] #scope-panel>.controls{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
-.store-yoy-page #annual-quick-filters #scope-panel>.controls>.store-picker-field{grid-column:auto}
 #report-stores .store-period-records{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;padding:5px 0;text-align:left;background:none;border:0;color:var(--ink);font-size:16px;line-height:1.4}
 #report-stores .store-period-records strong{font-size:16px;overflow-wrap:anywhere}
 #report-stores .store-period-records>span{color:var(--purple);font-size:20px}
@@ -374,8 +338,10 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 .compact-category-row>span{overflow-wrap:anywhere}
 .compact-category-row>i{position:absolute;left:0;right:0;bottom:5px;height:3px;background:#eee8f4;border-radius:2px}
 .compact-category-row>i>b{display:block;height:100%;background:var(--purple);border-radius:2px}
-.current-store-head,.current-store-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:right}
-.current-store-head{font-size:13px;color:var(--muted);padding:4px 0}
+.current-store-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:right}
+.current-store-unit{font-size:13px;color:var(--muted);margin:0;text-align:right}
+.current-store-values>div{min-width:0;display:grid;gap:2px}
+.current-store-values .current-store-label{font-family:inherit;font-size:13px;color:var(--muted);white-space:nowrap}
 .current-store-values{font-family:Arial,sans-serif;font-size:15px;line-height:1.6;font-variant-numeric:tabular-nums}
 .current-store-values span{overflow-wrap:anywhere}
 .current-store-row{padding-bottom:8px;border-bottom:1px solid var(--line)}
@@ -433,8 +399,8 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 #report-rhythm #monthly-chart .monthly-comparison .metric-col{width:14%}
 #report-rhythm #monthly-chart .monthly-comparison .amount-col{width:30%}
 #report-rhythm #monthly-chart .monthly-comparison .growth-col{width:26%}
-.current-store-head i{font-style:normal;font-size:10px;margin-right:3px}
-.current-store-head .income-key{color:var(--chart-income-bar)}.current-store-head .expense-key{color:var(--chart-expense-bar)}.current-store-head .balance-key{color:var(--chart-balance-bar)}
+.current-store-label i{font-style:normal;font-size:10px;margin-right:3px}
+.current-store-label .income-key{color:var(--chart-income-bar)}.current-store-label .expense-key{color:var(--chart-expense-bar)}.current-store-label .balance-key{color:var(--chart-balance-bar)}
 
 #report-workspace #report-summary .report-total>strong{font-family:Arial,sans-serif}
 #overview>.chart-panel>.panel-heading{display:none}

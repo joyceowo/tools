@@ -1,5 +1,13 @@
 import {totals,shiftDay,validDate} from './ledger.js';
 
+// Calendar cells show an approximate value; the label and selected-day detail stay exact.
+export function calendarCompactAmount(cents){
+ const value=cents/100,absolute=Math.abs(value);
+ const unit=absolute>=1e12?1e12:absolute>=1e8?1e8:absolute>=1e4?1e4:1;
+ const suffix=unit===1e12?'兆':unit===1e8?'億':unit===1e4?'萬':'';
+ return new Intl.NumberFormat('zh-TW',{maximumFractionDigits:unit>1&&absolute/unit<100?1:absolute<1000?2:0,useGrouping:false}).format(value/unit)+suffix;
+}
+
 export function shiftCalendarMonth(month,step){
  const date=new Date(month+'-01T12:00:00Z');
  date.setUTCMonth(date.getUTCMonth()+step);

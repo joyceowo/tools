@@ -30,16 +30,17 @@
 @media(forced-colors:active){#store-scope-apply{border-color:ButtonText}.store-picker-row input{forced-color-adjust:auto}}
 @media(prefers-reduced-transparency:reduce){#store-scope-dialog::backdrop{backdrop-filter:none}}
 
-/* Overview keeps the shared store picker alongside the page title. */
-.store-scope-icon{display:none}
-.app-header.overview-header{gap:12px}
-.overview-header>div:first-child{display:flex;align-items:center;gap:8px;min-width:0}
-.overview-header h1{white-space:nowrap}
-.overview-header #mode-badge{flex:none;font-size:10px;padding:4px 6px;white-space:nowrap}
-#overview-store-slot{flex:0 1 auto;min-width:0;max-width:55%;width:max-content}
-#overview-store-slot .store-picker-field{min-width:0}
-#overview-store-slot .scope-field-label{display:none}
-#overview-store-slot #store-scope{display:flex;align-items:center;gap:6px;min-height:44px;font-size:14px;padding:8px 26px 8px 10px}
-#overview-store-slot .store-scope-icon{display:block;flex:none;width:18px;height:18px;color:var(--muted)}
+/* The same store scope stays in the header across overview, records and reports. */
+.store-scope-icon,.store-scope-count{display:none}
+#header-store-slot{flex:0 1 auto;min-width:44px;max-width:40%;width:max-content;margin-left:auto}
+#header-store-slot .store-picker-field{min-width:0}
+#header-store-slot .scope-field-label{display:none}
+#header-store-slot #store-scope{display:flex;align-items:center;gap:6px;min-height:44px;font-size:14px;padding:8px 26px 8px 10px}
+#header-store-slot #store-scope::after{top:50%;transform:translateY(-50%)}
+#header-store-slot .store-scope-icon{display:block;flex:none;width:18px;height:18px;color:var(--muted)}
 #store-scope .store-scope-label{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:360px){.app-header.overview-header{gap:8px}.overview-header>div:first-child{gap:6px}#overview-store-slot{max-width:52%}}
+@media(max-width:360px){
+ #header-store-slot #store-scope{justify-content:center;gap:4px;min-width:52px;padding:8px}
+ #header-store-slot .store-scope-label,#header-store-slot #store-scope::after{display:none}
+ #header-store-slot .store-scope-count{display:block}
+}

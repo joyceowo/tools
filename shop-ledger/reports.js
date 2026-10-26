@@ -4,13 +4,15 @@ import {categoryRowsMarkup,currentStoresData,currentStoresMarkup} from './compac
 import {storeSamePeriodData,storeSamePeriodMarkup} from './summary-comparison.js';
 import {periodComparisonMarkup} from './period-chart.js';
 import {createMonthlyChart} from './monthly-chart.js';
+import {setupReportPeriod} from './report-period.js';
 import {annualRange,categoryReport,compareRanges,previousRange,metricNames,monthlyCashflow} from './reporting.js';
 const $=id=>document.getElementById(id);
-export function createReports({today,onStore,onContextChange,onLimitedPeriod,onRange,onMonth,onCategory}){
+export function createReports({today,onStore,onContextChange,onLimitedPeriod,onPeriod,getPeriod,onRange,onMonth,onCategory,onNavigate=()=>{},onBack}){
  let coverage=annualWindow(today);
  let source=[],knownStores=[],allStoreLabel='全部門市',scope='*',range={start:today.slice(0,7)+'-01',end:today},demo=true,view='rhythm',menu=true,monthlyYear=Number(today.slice(0,4)),monthlyReady=false;
- let categoryComparison='current',storeComparison='yoy',storeYoyPage=0,storeYoyContext='',currentStorePage=0,currentStoreContext='',monthlyMode='amount';
+ let categoryComparison='current',storeComparison='current',storeYoyPage=0,storeYoyContext='',currentStorePage=0,currentStoreContext='',monthlyMode='amount';
  const monthlyChart=createMonthlyChart($('monthly-chart'));
+ const periodControls=setupReportPeriod({onYear:next=>{monthlyYear=next;monthlyReady=true;renderTotal();},onPeriod});
  const titles={rhythm:'收支統計',categories:'分類分析',stores:'門市比較'};
  function context(text){
   $('report-context').textContent=text+(demo?' · 模擬資料':'');
@@ -18,7 +20,7 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onR
  }
  function render(input={}){
   today=input.today??today;coverage=input.coverage??coverage;
-  monthlyYear=Math.max(coverage.startYear,Math.min(coverage.endYear,monthlyYear));
+  monthlyYear=Math.max(coverage.endYear-1,Math.min(coverage.endYear,monthlyYear));
   if(input.rows&&input.rows!==source){storeYoyContext='';currentStoreContext='';}
   allStoreLabel=input.allStoreLabel??allStoreLabel;source=input.rows??source;knownStores=input.stores??knownStores;scope=input.store??scope;demo=input.demo??demo;range=input.range??range;
   $('report-menu').hidden=!menu;$('report-workspace').hidden=menu;
@@ -29,17 +31,17 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onR
   $('report-years').hidden=view!=='rhythm';
   context((scope==='*'?allStoreLabel:scope)+' · '+range.start+' ～ '+range.end);
   if(menu)return;
-  if(view==='rhythm')renderTotal();if(view==='categories')renderCategories();if(view==='stores')renderStores();
+  if(view==='rhythm')renderTotal();if(view==='categories')renderCategories();if(view==='stores')renderStores();renderPeriod();
  }
+ function renderPeriod(){periodControls.render({monthly:view==='rhythm',selectedYear:monthlyYear,availableYears:coverage.years.map(item=>item.year),today,range,period:getPeriod()});}
  function scoped(){return scope==='*'?source:source.filter(r=>(r.store||'')===scope);}
  function renderTotal(){
   $('total-view').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.chartMode===monthlyMode)));
-  renderMonthly();renderComparison();
+  renderMonthly();renderComparison();renderPeriod();
  }
  function renderMonthly(){
-  const years=coverage.years.map(item=>item.year);
+  const years=coverage.years.slice(0,2).map(item=>item.year);
   if(!monthlyReady&&source.length){monthlyYear=years.find(y=>source.some(r=>r.date.startsWith(y+'-')&&r.date<=today))||years[0];monthlyReady=true;}
-  $('monthly-year').replaceChildren(...years.map(y=>new Option(y+' 年',y,false,y===monthlyYear)));
   const data=monthlyCashflow(scoped(),monthlyYear,today);
   context((scope==='*'?allStoreLabel:scope)+' · '+monthlyYear+' 年');
   const partial=data.months.find(m=>m.partial);
@@ -85,14 +87,13 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onR
 
  }
  function chooseView(next){
-  if(!Object.hasOwn(titles,next))return;view=next;menu=false;$('report-filters').open=false;if(['categories','stores'].includes(view))onLimitedPeriod();render();onContextChange();
+  if(!Object.hasOwn(titles,next))return;onNavigate(next);view=next;menu=false;$('report-filters').open=false;if(['categories','stores'].includes(view))onLimitedPeriod();render();onContextChange();
   window.scrollTo({top:0,behavior:'instant'});$('report-title').focus({preventScroll:true});
  }
  function showMenu(focus=true){menu=true;$('report-filters').open=false;render();onContextChange();if(focus){window.scrollTo({top:0,behavior:'instant'});$('report-menu-title').focus({preventScroll:true});}}
  $('report-picker').onclick=e=>{const b=e.target.closest('[data-report-view]');if(b)chooseView(b.dataset.reportView);};
- $('report-back').onclick=()=>showMenu();
+ $('report-back').onclick=()=>{if(onBack&&history.state?.reportView)onBack();else showMenu();};
  $('total-view').onclick=e=>{const b=e.target.closest('[data-chart-mode]');if(b){monthlyMode=b.dataset.chartMode;renderTotal();onContextChange();}};
- $('monthly-year').onchange=()=>{monthlyYear=Number($('monthly-year').value);monthlyReady=true;renderTotal();};
  $('category-overview').onclick=e=>{const b=e.target.closest('[data-category]');if(b&&!b.disabled)onCategory(b.dataset.category,b.dataset.categoryType,b.dataset.categoryPeriod==='previous'?previousRange(range,'year'):range);};
  $('category-view').onclick=e=>{const b=e.target.closest('[data-category-view]');if(b){categoryComparison=b.dataset.categoryView;renderCategories();}};
  $('store-view').onclick=e=>{const b=e.target.closest('[data-store-view]');if(b){storeComparison=b.dataset.storeView;renderStores();onContextChange();}};
@@ -102,5 +103,6 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onR
   if(record&&!record.disabled){onStore(record.dataset.storeYoy,{comparison:false});onRange(range);}
  };
  $('store-comparison').onclick=e=>{const page=e.target.closest('[data-current-page]'),record=e.target.closest('[data-current-store]');if(page&&!page.disabled){currentStorePage+=Number(page.dataset.currentPage);renderStores();}if(record&&!record.disabled){onStore(record.dataset.currentStore,{comparison:false});onRange(range);}};
- return {render,showMenu,isHome:()=>menu,getTitle:()=>titles[view],getView:()=>view,getMonthlyMode:()=>!menu&&view==='rhythm',getStoreComparisonMode:()=>storeComparison==='yoy',hasLimitedPeriod:()=>!menu&&['categories','stores'].includes(view)};
+ function restoreView(next){menu=!Object.hasOwn(titles,next);if(!menu)view=next;}
+ return {render,showMenu,restoreView,isHome:()=>menu,getTitle:()=>titles[view],getView:()=>view,getMonthlyMode:()=>!menu&&view==='rhythm',getStoreComparisonMode:()=>storeComparison==='yoy',hasLimitedPeriod:()=>!menu&&['categories','stores'].includes(view)};
 }

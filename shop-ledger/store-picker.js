@@ -7,7 +7,7 @@ export function createStorePicker({getCatalog,getScope,onApply}){
  let draft=[],useDefault=false;
  function render(){
   const keys=reportStoreKeys(getCatalog(),getScope()),label=reportStoreLabel(keys),names=keys.join('、');
-  button.innerHTML='<svg class="store-scope-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18l-2-6H5l-2 6Z M5 10v10h14V10 M9 20v-6h6v6 M8 4l-1 6 M16 4l1 6"/></svg><span class="store-scope-label">'+esc(label)+'</span>';button.title=names;button.setAttribute('aria-label','查看門市：'+(names||label));
+  button.innerHTML='<svg class="store-scope-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10h18l-2-6H5l-2 6Z M5 10v10h14V10 M9 20v-6h6v6 M8 4l-1 6 M16 4l1 6"/></svg><span class="store-scope-label">'+esc(label)+'</span><span class="store-scope-count" aria-hidden="true">'+keys.length+'</span>';button.title=names;button.setAttribute('aria-label','查看門市：'+(names||label));
  }
  function renderDraft(){
   const stores=getCatalog()?.stores||[],ordered=[...stores.filter(s=>!s.hiddenFromReports),...stores.filter(s=>s.hiddenFromReports)];
