@@ -36,11 +36,9 @@
 #calendar-panel .report-help{line-height:1.7;margin-bottom:10px}
 #calendar-panel .calendar-weekdays,#calendar-panel .revenue-calendar{min-width:0}
 #calendar-panel .calendar-scroll{overflow-x:visible}
-.calendar-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.calendar-heading h2{min-width:0}
-.calendar-heading .text-button{flex-shrink:0}
-.calendar-heading .text-button{min-height:44px;padding:8px;color:var(--muted)}
-.calendar-month-nav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;max-width:390px;margin:12px auto 0}
+.calendar-month-label{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0 4px;min-width:0}
+.calendar-month-label .text-button{min-height:44px;padding:8px;color:var(--muted);font-size:13px}
+.calendar-month-nav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;max-width:390px;margin:0 auto}
 .calendar-month-nav>button{width:44px;min-height:48px;border:1px solid var(--line);border-radius:10px;background:white;color:var(--ink);font-size:26px;line-height:1}
 .calendar-month-nav>label{min-width:0}
 .calendar-month-nav input{display:block;width:100%;min-width:0;min-height:48px;border:1px solid #b8acc5;border-radius:10px;background:white;color:var(--ink);font:inherit;font-size:16px;padding:8px;text-align:center}

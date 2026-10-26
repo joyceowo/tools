@@ -11,6 +11,8 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onP
  let coverage=annualWindow(today);
  let source=[],knownStores=[],allStoreLabel='全部門市',scope='*',range={start:today.slice(0,7)+'-01',end:today},demo=true,view='rhythm',menu=true,monthlyYear=Number(today.slice(0,4)),monthlyReady=false;
  let categoryComparison='current',storeComparison='current',storeYoyPage=0,storeYoyContext='',currentStorePage=0,currentStoreContext='',monthlyMode='amount';
+ let currentStoreVisible=5,storeYoyVisible=5;
+ const mobileStores=()=>window.matchMedia('(max-width:760px)').matches;
  const monthlyChart=createMonthlyChart($('monthly-chart'));
  const periodControls=setupReportPeriod({onYear:next=>{monthlyYear=next;monthlyReady=true;renderTotal();},onPeriod});
  const titles={rhythm:'收支統計',categories:'分類分析',stores:'門市比較'};
@@ -71,8 +73,8 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onP
  }
  function renderStoreYoy(){
   const key=range.start+'|'+range.end;
-  if(key!==storeYoyContext){storeYoyContext=key;storeYoyPage=0;}
-  const data=storeSamePeriodData(source,range,knownStores,storeYoyPage);storeYoyPage=data.page;
+  if(key!==storeYoyContext){storeYoyContext=key;storeYoyPage=0;storeYoyVisible=5;}
+  const data=storeSamePeriodData(source,range,knownStores,storeYoyPage,mobileStores()?storeYoyVisible:null);storeYoyPage=data.page;
   $('store-period-comparison').innerHTML=storeSamePeriodMarkup(data,range,$('store-period-comparison').clientWidth,today);
  }
  function renderStores(){
@@ -81,10 +83,19 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onP
   if(yoy){renderStoreYoy();return;}
 
   const key=range.start+'|'+range.end;
-  if(key!==currentStoreContext){currentStoreContext=key;currentStorePage=0;}
-  const data=currentStoresData(source,range,'income',knownStores,currentStorePage);currentStorePage=data.page;
+  if(key!==currentStoreContext){currentStoreContext=key;currentStorePage=0;currentStoreVisible=5;}
+  const data=currentStoresData(source,range,'income',knownStores,currentStorePage,mobileStores()?currentStoreVisible:null);currentStorePage=data.page;
   $('store-ranking').innerHTML=currentStoresMarkup(data,$('store-ranking').clientWidth);
 
+ }
+ function showMoreStores(kind){
+  if(!mobileStores())return;
+  const yoy=kind==='yoy',container=$(yoy?'store-period-comparison':'store-ranking');
+  const selector=yoy?'[data-store-yoy]':'[data-current-store]',shown=container.querySelectorAll(selector).length;
+  const top=window.scrollY;
+  if(yoy){storeYoyVisible+=5;renderStoreYoy();}else{currentStoreVisible+=5;renderStores();}
+  container.querySelectorAll(selector)[shown]?.focus({preventScroll:true});
+  window.scrollTo({top,behavior:'instant'});
  }
  function chooseView(next){
   if(!Object.hasOwn(titles,next))return;onNavigate(next);view=next;menu=false;$('report-filters').open=false;if(['categories','stores'].includes(view))onLimitedPeriod();render();onContextChange();
@@ -98,11 +109,12 @@ export function createReports({today,onStore,onContextChange,onLimitedPeriod,onP
  $('category-view').onclick=e=>{const b=e.target.closest('[data-category-view]');if(b){categoryComparison=b.dataset.categoryView;renderCategories();}};
  $('store-view').onclick=e=>{const b=e.target.closest('[data-store-view]');if(b){storeComparison=b.dataset.storeView;renderStores();onContextChange();}};
  $('store-period-comparison').onclick=e=>{
+  const more=e.target.closest('[data-store-more]');if(more){showMoreStores(more.dataset.storeMore);return;}
   const page=e.target.closest('[data-store-yoy-page]'),record=e.target.closest('[data-store-yoy]');
   if(page&&!page.disabled){storeYoyPage+=Number(page.dataset.storeYoyPage);renderStoreYoy();}
   if(record&&!record.disabled){onStore(record.dataset.storeYoy,{comparison:false});onRange(range);}
  };
- $('store-comparison').onclick=e=>{const page=e.target.closest('[data-current-page]'),record=e.target.closest('[data-current-store]');if(page&&!page.disabled){currentStorePage+=Number(page.dataset.currentPage);renderStores();}if(record&&!record.disabled){onStore(record.dataset.currentStore,{comparison:false});onRange(range);}};
+ $('store-comparison').onclick=e=>{const more=e.target.closest('[data-store-more]');if(more){showMoreStores(more.dataset.storeMore);return;}const page=e.target.closest('[data-current-page]'),record=e.target.closest('[data-current-store]');if(page&&!page.disabled){currentStorePage+=Number(page.dataset.currentPage);renderStores();}if(record&&!record.disabled){onStore(record.dataset.currentStore,{comparison:false});onRange(range);}};
  function restoreView(next){menu=!Object.hasOwn(titles,next);if(!menu)view=next;}
  return {render,showMenu,restoreView,isHome:()=>menu,getTitle:()=>titles[view],getView:()=>view,getMonthlyMode:()=>!menu&&view==='rhythm',getStoreComparisonMode:()=>storeComparison==='yoy',hasLimitedPeriod:()=>!menu&&['categories','stores'].includes(view)};
 }

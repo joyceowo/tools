@@ -287,6 +287,9 @@ label.report-hidden-toggle{display:inline-flex;align-items:center;gap:8px;width:
 .comparison-explanation p{color:var(--muted);font-size:14px;line-height:1.7}
 .store-period-pages{display:flex;justify-content:center;gap:14px;align-items:center;margin-top:8px;font-size:14px}
 .store-period-pages button{min-width:44px;min-height:44px;background:white;border:1px solid var(--line);border-radius:9px;color:var(--purple);font-size:18px}
+.store-period-more{display:grid;justify-items:center;gap:8px;margin-top:12px}
+.store-period-more p{margin:0;color:var(--muted);font-size:13px}
+.store-period-more button{min-height:44px;min-width:160px;padding:8px 16px;border:1px solid var(--line);border-radius:9px;background:white;color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
 .store-yoy-page #report-stores>details,.store-yoy-page #compact-range-context{display:none}
 #report-stores>.compact-store-controls:empty{display:none}
 @media(max-width:760px){

@@ -1,4 +1,5 @@
 import {storeRangeReport,metricNames} from './reporting.js';
+import {storeBrowsingData,storeBrowsingMarkup} from './store-browsing.js';
 import {niceChartScale,moneyAxisLabel,metricBarStyles,chartMarker} from './chart-design.js';
 const number=v=>new Intl.NumberFormat('zh-TW',{maximumFractionDigits:2}).format(v);
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -14,10 +15,9 @@ export function categoryRowsMarkup(groups,type,limit=5){
  return `<div class="category-share-list"><div class="compact-category-head"><span>分類</span><span>金額（元）</span><span>占比</span></div>${listed.map(row).join('')}${remaining.length?`<details class="report-extra"><summary>其他 ${remaining.length} 類</summary>${remaining.map(row).join('')}</details>`:''}</div>`;
 
 }
-export function currentStoresData(rows,range,metric,knownStores,page=0){
+export function currentStoresData(rows,range,metric,knownStores,page=0,visibleCount=null){
  const all=storeRangeReport(rows,range,metric,knownStores).sort((a,b)=>Number(b.hasRecords)-Number(a.hasRecords)||b[metric]-a[metric]||a.store.localeCompare(b.store));
- const count=Math.max(1,Math.ceil(all.length/3)),selected=Math.max(0,Math.min(page,count-1));
- return {all,items:all.slice(selected*3,selected*3+3),page:selected,pageCount:count,...niceChartScale(all.flatMap(s=>s.hasRecords?['income','expense','balance'].map(k=>s[k]):[]))};
+ return {all,...storeBrowsingData(all,page,visibleCount),...niceChartScale(all.flatMap(s=>s.hasRecords?['income','expense','balance'].map(k=>s[k]):[]))};
 }
 export function currentStoresMarkup(data,availableWidth){
  const width=Math.max(220,availableWidth||320),x=v=>8+(v-data.min)/(data.max-data.min)*(width-16),zero=x(0),ticks=[];
@@ -28,5 +28,5 @@ export function currentStoresMarkup(data,availableWidth){
   const style=metricBarStyles[k],center=8+i*14;
   return (s[k]===0?'':`<rect data-store-bar="${k}" x="${Math.min(zero,x(s[k]))}" y="${center-4}" width="${Math.abs(x(s[k])-zero)}" height="8" rx="1" fill="${style.color}"/>`)+chartMarker(style,x(s[k]),center,3.2,`data-store-marker="${k}"`);
  }).join('')}</svg>`;
- return `<svg class="comparison-money-axis" viewBox="0 0 ${width} 22" aria-hidden="true">${ticks.map(v=>`<text x="${x(v)}" y="15" text-anchor="${v===data.min?'start':v===data.max?'end':'middle'}">${moneyAxisLabel(v)}</text>`).join('')}</svg><p class="current-store-unit">元</p>${data.items.map(s=>`<article class="current-store-row"><button type="button" data-current-store="${esc(s.store)}" ${s.hasRecords?'':'disabled'} aria-label="${esc(s.store)}，查看收支明細"><strong>${esc(s.store)}</strong><span aria-hidden="true">›</span></button><div class="current-store-values">${['income','expense','balance'].map(k=>`<div><span class="current-store-label"><i class="${k}-key" aria-hidden="true">${metricBarStyles[k].shape==='circle'?'●':k==='expense'?'■':'◆'}</i>${metricNames[k]}</span><span class="${s[k]<0?'negative-amount':''}">${recorded(s,k)?number(s[k]/100):'—'}</span></div>`).join('')}</div>${s.hasRecords?bars(s):'<p class="report-empty">此期間無記錄</p>'}</article>`).join('')||'<p class="report-empty">此期間無門市。</p>'}${data.pageCount>1?`<div class="store-period-pages"><button data-current-page="-1" aria-label="上一頁門市" ${data.page===0?'disabled':''}>←</button><span>${data.page+1} / ${data.pageCount}</span><button data-current-page="1" aria-label="下一頁門市" ${data.page===data.pageCount-1?'disabled':''}>→</button></div>`:''}`;
+ return `<svg class="comparison-money-axis" viewBox="0 0 ${width} 22" aria-hidden="true">${ticks.map(v=>`<text x="${x(v)}" y="15" text-anchor="${v===data.min?'start':v===data.max?'end':'middle'}">${moneyAxisLabel(v)}</text>`).join('')}</svg><p class="current-store-unit">元</p>${data.items.map(s=>`<article class="current-store-row"><button type="button" data-current-store="${esc(s.store)}" ${s.hasRecords?'':'disabled'} aria-label="${esc(s.store)}，查看收支明細"><strong>${esc(s.store)}</strong><span aria-hidden="true">›</span></button><div class="current-store-values">${['income','expense','balance'].map(k=>`<div><span class="current-store-label"><i class="${k}-key" aria-hidden="true">${metricBarStyles[k].shape==='circle'?'●':k==='expense'?'■':'◆'}</i>${metricNames[k]}</span><span class="${s[k]<0?'negative-amount':''}">${recorded(s,k)?number(s[k]/100):'—'}</span></div>`).join('')}</div>${s.hasRecords?bars(s):'<p class="report-empty">此期間無記錄</p>'}</article>`).join('')||'<p class="report-empty">此期間無門市。</p>'}${storeBrowsingMarkup(data,'current')}`;
 }

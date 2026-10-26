@@ -159,7 +159,7 @@ svg.report-series-key,#trend-chart svg.report-series-key{display:inline-block;wi
 #store-ranking .current-store-head{order:0}
 #store-ranking .current-store-row{order:1}
 #store-ranking .comparison-money-axis{order:2}
-#store-ranking .store-period-pages{order:3}
+#store-ranking .store-period-pages,#store-ranking .store-period-more{order:3}
 
 #report-back{color:var(--muted)}
 #report-workspace .monthly-nav button,#report-workspace .year-chart-month-nav button,
@@ -188,7 +188,7 @@ svg.report-series-key,#trend-chart svg.report-series-key{display:inline-block;wi
 #overview .stats .stat-value{font-size:22px;font-family:Arial,"Noto Sans TC",sans-serif;font-weight:600;letter-spacing:-.4px;margin:6px 0 0;line-height:1.35;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 #overview .stats .balance .stat-value{font-weight:600;margin:0}
 #overview .stats .stat-value span{display:inline-block;max-width:100%;overflow-wrap:anywhere}
-.calendar-month-nav>strong{text-align:center;font-size:17px;font-weight:600;color:var(--ink);line-height:1.5}
+.calendar-month-label>strong{text-align:center;font-size:17px;font-weight:600;color:var(--ink);line-height:1.5}
 @media(min-width:761px){
  #overview .stats{padding:20px 24px}
  #overview .stats .stat-value{font-size:26px}
