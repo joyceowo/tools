@@ -40,3 +40,18 @@ export function isLocalShareLink(href){
   const host=new URL(href).hostname;
   return host==='localhost'||host.endsWith('.localhost')||host==='[::1]'||/^127\./.test(host)||host==='0.0.0.0';
 }
+
+// Call directly from the click handler so native sharing keeps user activation.
+export async function shareLedgerLink(url,nav=globalThis.navigator){
+  const data={title:'日日果凍 · 收支帳本',url};
+  if(typeof nav?.share==='function'){
+    try{
+      if(typeof nav.canShare!=='function'||nav.canShare(data)){
+        await nav.share(data);
+        return 'shared';
+      }
+    }catch(error){if(error?.name==='AbortError')return 'cancelled';}
+  }
+  try{await nav.clipboard.writeText(url);return 'copied';}
+  catch{return 'manual';}
+}

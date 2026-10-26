@@ -20,6 +20,14 @@
 .sync-tools #pwa-install:disabled{color:var(--muted);border-color:var(--line);cursor:wait}
 @media(forced-colors:active){.sync-tools #pwa-install{border-color:ButtonText;color:ButtonText;background:ButtonFace}.sync-tools #pwa-install::before{background:ButtonText;forced-color-adjust:none}.sync-tools #pwa-install:focus-visible{outline-color:Highlight}.sync-tools #pwa-install:disabled{color:GrayText;border-color:GrayText}}
 .sync-tool:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
+.sync-tools #share-ledger{justify-content:flex-start;min-height:60px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;font-size:16px;font-weight:600;cursor:pointer}
+#share-ledger svg{flex:none;width:24px;height:24px}
+#share-ledger:disabled{opacity:.5;cursor:wait}
+#ledger-share{margin-top:12px}
+#ledger-share-note{margin:6px 0 0;font-size:13px;line-height:1.6;color:var(--muted)}
+.sync-tools #ledger-share:not([hidden])+#pwa-install{margin-top:12px}
+#ledger-share-url{font-size:16px;line-height:1.5;overflow-wrap:anywhere;word-break:break-all;resize:vertical}
+@media(forced-colors:active){.sync-tools #share-ledger{border-color:ButtonText;color:ButtonText;background:ButtonFace}}
 .year-chart-detail>summary{min-height:44px;padding:12px 0;color:var(--purple);font-size:16px;font-weight:600;cursor:pointer}
 #overview #calendar-panel{margin:0 0 20px;background:#fff}
 #calendar-panel>.controls{align-items:center;justify-content:space-between;gap:12px}
