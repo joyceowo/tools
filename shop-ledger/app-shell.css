@@ -1,9 +1,22 @@
+/* Lock the viewport, including the backdrop, while any (possibly nested) dialog is open. */
+html{scrollbar-gutter:stable}
+html:has(dialog[open]){overflow:hidden;overscroll-behavior:none}
+/* Only displayed amounts opt out of selection; notes and form controls stay selectable. */
+:is(.stat-value,.comparison-change,.day-balance-amount,.day-balance-breakdown dd,.calendar-day-comparison td,.current-store-values>div>span:last-child,.monthly-comparison td,.period-values-table td,.store-period-metric td,.compact-category-row strong,.compact-category-row small,.category-comparison-values button,.amount-cell){-webkit-user-select:none;user-select:none}
+#discard-dialog{width:calc(100% - 32px);max-width:360px;padding:24px;background:#fff;color:var(--ink)}
+#discard-dialog h2{margin:0;font-size:20px;line-height:1.4}
+#discard-message{margin:12px 0 20px;font-size:15px;line-height:1.6}
+.discard-actions{display:flex;gap:10px}
+.discard-actions button{flex:1;min-height:48px;padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:16px;cursor:pointer}
+#discard-accept{color:var(--peach)}
+.discard-actions button:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
+@media(forced-colors:active){#discard-dialog{background:Canvas;color:CanvasText}.discard-actions button,#discard-accept{background:ButtonFace;color:ButtonText;border-color:ButtonText}}
 /* Shared heading and status stay together on every page, including report details. */
 .app-header .app-heading{display:flex;align-items:center;gap:8px;min-width:0}
 .app-header #page-title{white-space:nowrap}
 .app-header #mode-badge{flex:none;font-size:10px;line-height:1.4;padding:4px 6px;max-width:none;white-space:nowrap}
-.app-heading #report-back{display:flex;align-items:center;justify-content:center;flex:0 0 44px;min-width:44px;min-height:44px;padding:0;font-size:0}
-.app-heading #report-back::before{content:"←";font-size:22px}
+.app-heading :is(#report-back,#cancel-edit){display:flex;align-items:center;justify-content:center;flex:0 0 44px;min-width:44px;min-height:44px;padding:0;font-size:0;color:var(--muted)}
+.app-heading :is(#report-back,#cancel-edit)::before{content:"←";font-size:22px}
 /* A shared navigation bar sits below the system status area. */
 .sidebar nav a>svg{width:24px;height:24px;flex:none}
 .mobile-nav a>svg{width:24px;height:24px;flex:none}
@@ -25,13 +38,11 @@
 .entry-delete{grid-column:1/-1;justify-self:start;min-height:44px;color:var(--muted);margin-top:8px}
 #entry-panel .inline-link{display:inline-flex;align-items:center;min-height:44px;padding-block:8px}
 #entry-amount{min-height:44px}
-#entry-title:focus{outline:none}
 .calendar-amount-compact{display:none}
 @media(max-width:760px){
  #entry-panel #entry-form{padding-bottom:110px}
  #entry-panel .entry-actions{position:fixed;z-index:21;left:14px;right:14px;bottom:var(--mobile-nav-height,80px);padding:10px 16px;background:#fff;border:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -3px 12px #2824330d}
  #entry-panel .entry-actions .save-button{margin:0;min-height:48px;box-shadow:none}
- #entry-panel .entry-actions .cancel-edit{min-height:44px;margin:4px auto 0}
  .keyboard-open #entry-panel .entry-actions{bottom:var(--keyboard-inset,0px)}
  .keyboard-open .mobile-nav{visibility:hidden;pointer-events:none}
  body:has(#entry-panel:not([hidden])) .toast{bottom:calc(var(--mobile-nav-height,80px) + 90px)}

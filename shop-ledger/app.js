@@ -1,5 +1,6 @@
 import {setupCatalogSort} from './catalog-sort.js';
 import {setupMobileShell} from './mobile-shell.js';
+import {setupDiscardConfirmation} from './discard-confirmation.js';
 import {setupTransactionTools} from './transaction-tools.js';
 import {setupTransactionPeriod} from './transaction-period.js';
 import {annualWindow,assertEntryDate,assertAnnualSupport,yearAvailability} from './annual-window.js';
@@ -32,6 +33,7 @@ let activeDestination=null,activeScrollKey=null;
 const pageScroll=new Map();
 history.scrollRestoration='manual';
 setupMobileShell();
+const confirmDiscard = setupDiscardConfirmation();
 const recordsMedia=window.matchMedia('(max-width:760px)');
 let recordLimit=20;
 let recordViewportAnchor=null,recordLayoutMobile=recordsMedia.matches,recordScrollFrame=null;
@@ -65,6 +67,7 @@ let annualCoverage=annualWindow(today);
 const catalogKey=()=>demo?'jelly-catalog-demo-v1':'jelly-catalog-'+config?.sheet;
 const pageTitles={overview:'總覽',transactions:'收支明細','entry-panel':'記一筆',annual:'經營報表',management:'管理'};
 function navigate(hash,{resetScroll=false,state={}}={}){
+ if(activeDestination==='entry-panel'&&hash!=='#entry-panel'&&!discardEntryEdit(()=>navigate(hash,{resetScroll,state})))return;
  const reportView=hash==='#annual'&&!reports.isHome()?reports.getView():null;
  if(location.hash!==hash)history.pushState({...state,reportView},'',hash);
  activateDestination(hash,{resetScroll});
@@ -124,6 +127,26 @@ async function request(connection, action, extra = {}) {
 }
 function draftKey() { return 'jelly-draft-v1-' + (demo ? 'demo' : config?.sheet); }
 function getDraft() { return {date:$('entry-date').value,type:entryType,category:$('entry-category').value,amount:$('entry-amount').value,note:$('entry-note').value,store:$('entry-store').value,id:pendingId,editing}; }
+function entryValues(){const {id,editing,...values}=getDraft();return values;}
+function entryHasChanges(){
+ if(!editing)return false;
+ const original=editing.expectedRecord;
+ const initial=editing.initialValues||(original?{date:original.date,type:original.type,category:resolveName(catalog,'categories',original.category,original.type),amount:String(original.amount),note:original.note||'',store:resolveName(catalog,'stores',original.store||'')}:null);
+ return !initial||JSON.stringify(entryValues())!==JSON.stringify(initial);
+}
+function discardEntryEdit(onDiscard){
+ if(!editing)return true;
+ if(busy||refreshBusy)return false;
+ if(entryHasChanges()){
+  confirmDiscard('記錄',()=>{storage.remove(draftKey());resetEntry();onDiscard();});return false;
+ }
+ storage.remove(draftKey());resetEntry();return true;
+}
+function returnFromEntry(){
+ const hasParent=history.state?.recordEdit;
+ const leave=()=>{if(hasParent)history.back();else navigate('#transactions');};
+ if(discardEntryEdit(leave))leave();
+}
 function storeDraft() { pendingId = pendingId || crypto.randomUUID(); storage.set(draftKey(), getDraft()); }
 function setType(type) {
   const category=type===entryType?$('entry-category').value:'';
@@ -135,13 +158,13 @@ function resetEntry(restore = false) {
   const previousStore=$('entry-store').value,previousDate=$('entry-date').value,previousType=entryType,previousCategory=$('entry-category').value;
   $('entry-form').reset();setType(restore?'expense':previousType);$('entry-date').value=restore?today:(previousDate||today);renderStorePicker();
   $('entry-store').value=restore?(catalog?.stores.find(s=>s.id===catalog.defaultStore&&s.active)?.name||''):(previousStore||'');if(!restore)updateCategoryOptions(previousCategory);editing=null;pendingId=null;
-  $('entry-title').innerHTML='記下一筆 <span class="purple-text">＋</span>';$('entry-title').closest('.panel-heading').hidden=true; $('cancel-edit').hidden=true;$('entry-delete').hidden=true; showError('save-error','');
+  $('cancel-edit').hidden=true;$('entry-delete').hidden=true; showError('save-error','');
   if (restore) {
     const draft = storage.get(draftKey());
     if (draft && Object.hasOwn(categories,draft.type) && validDate(draft.date)) {
       setType(draft.type);const draftCategory=resolveName(catalog,'categories',draft.category,draft.type);updateCategoryOptions(draftCategory); $('entry-date').value=draft.date; $('entry-category').value=draftCategory; $('entry-amount').value=draft.amount; $('entry-note').value=draft.note || ''; if(Object.hasOwn(draft,'store'))renderStorePicker(draft.store||''); pendingId=draft.id; editing=draft.editing || null;
       try{assertEntryDate(draft.date,annualCoverage,editing?.originalYear??null);}catch(e){showError('save-error',e.message+' 草稿已保留。');}
-      if(editing) { if(!Number.isInteger(editing.originalYear))showError('save-error','舊草稿缺少原年度資訊，請取消修改並重新開啟明細。');$('entry-title').textContent='修改這筆記錄';$('entry-title').closest('.panel-heading').hidden=false; $('cancel-edit').hidden=false;$('entry-delete').hidden=false; }
+      if(editing) { if(!Number.isInteger(editing.originalYear))showError('save-error','舊草稿缺少原年度資訊，請返回明細並重新開啟記錄。');$('entry-delete').hidden=false; }
     }
   }
   setBusy(false);
@@ -152,7 +175,12 @@ function updateDateBounds(){
  for(const id of ['range-start','range-end']){$(id).min=annualCoverage.startYear+'-01-01';$(id).max=today;}
 }
 function updateEntryAction(){$('save-button').textContent=busy?'正在確認儲存…':editing?'✓ 儲存修改':entryType==='income'?'儲存收入':'儲存支出';}
-function setBusy(value) { updateDateBounds();busy=value; $('entry-form').querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=value || (!demo&&(!ready||refreshBusy))); updateEntryAction(); }
+function setBusy(value) { updateDateBounds();busy=value; $('entry-form').querySelectorAll('button,input,select,textarea').forEach(el=>el.disabled=value || (!demo&&(!ready||refreshBusy))); $('cancel-edit').disabled=value||refreshBusy;updateEntryAction();syncEntryHeading(); }
+function syncEntryHeading(){
+ const inEntry=location.hash==='#entry-panel';
+ $('cancel-edit').hidden=!(inEntry&&editing);
+ if(inEntry)$('page-title').textContent=editing?'修改記錄':pageTitles['entry-panel'];
+}
 function renderSyncState(){
   $('mode-badge').textContent=demo?'示範帳本':refreshBusy?'同步中':syncFailed?'同步失敗':ready?'已連接':'尚未連接';
   $('app-status').textContent=appStatusMessage({demo,ready,syncFailed:syncFailed&&!refreshBusy});$('app-status').hidden=!$('app-status').textContent;
@@ -196,6 +224,7 @@ function renderReports(){
  const selection=reportData();reports.render({rows:selection.rows,store:'*',stores:selection.stores.map(s=>s.name),allStoreLabel:reportStoreLabel(selection.keys),range,demo,today,coverage:annualCoverage});
 }
 function syncScope(){
+ syncEntryHeading();
  document.body.classList.toggle('transactions-page',location.hash==='#transactions');
  const inOverview=location.hash==='#overview'||!pageTitles[location.hash.slice(1)],inReports=location.hash==='#annual',home=inReports&&reports.isHome(),detail=inReports&&!home,view=reports.getView(),allStores=detail&&view==='stores',monthly=detail&&reports.getMonthlyMode();
  if(inReports)$('page-title').textContent=home?'經營報表':reports.getTitle();
@@ -362,8 +391,16 @@ window.addEventListener('popstate',()=>{
   if(!closeCatalogEditor())history.pushState({...history.state,catalogEditor:true},'',location.href);
   return;
  }
+ if(activeDestination==='entry-panel'&&editing&&location.hash!=='#entry-panel'&&!discardEntryEdit(()=>history.back())){
+  // Keep the edit entry and its parent while the discard decision is pending.
+  history.pushState({recordEdit:true},'','#entry-panel');return;
+ }
  activateDestination(location.hash,{fromHistory:true});
 });
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&activeDestination==='entry-panel'&&editing&&!document.querySelector('dialog[open]')){event.preventDefault();returnFromEntry();}
+});
+window.addEventListener('beforeunload',event=>{if(activeDestination==='entry-panel'&&entryHasChanges()){event.preventDefault();event.returnValue='';}});
 document.addEventListener('click',event=>{const link=event.target.closest('a[href^="#"]');if(link&&Object.hasOwn(pageTitles,link.hash.slice(1))){event.preventDefault();navigate(link.hash);}});
 window.addEventListener('load',()=>window.scrollTo({top:0,behavior:'instant'}));
 window.addEventListener('resize',()=>{if(location.hash==='#annual')renderReports();});
@@ -398,7 +435,7 @@ $('entry-form').addEventListener('submit',async e=>{
   try{
     if(taipeiDay().slice(0,4)!==today.slice(0,4))throw Error('年度已切換，請先重新整理帳本；輸入內容已保留。');
     assertEntryDate($('entry-date').value,annualCoverage,editing?.originalYear??null);
-    if(editing&&!editing.expectedRecord)throw Error('舊草稿缺少原記錄資訊，請取消修改並重新開啟明細。');
+    if(editing&&!editing.expectedRecord)throw Error('舊草稿缺少原記錄資訊，請返回明細並重新開啟記錄。');
     const record={id:editing?.id||pendingId||crypto.randomUUID(),date:$('entry-date').value,type:entryType,category:$('entry-category').value,amount:cents($('entry-amount').value)/100,note:$('entry-note').value.trim(),store:storeName($('entry-store').value)};
     if(!record.store)throw Error('請選擇門市；尚無啟用門市時，請先到管理新增或啟用。');
     if(!editing&&(!catalog.stores.some(x=>x.name===record.store&&x.active)||!catalog.categories.some(x=>x.name===record.category&&x.type===record.type&&x.active)))throw Error('請選擇啟用中的門市與分類。');
@@ -406,10 +443,11 @@ $('entry-form').addEventListener('submit',async e=>{
     finishLoading=window.appLoading.start('正在儲存記錄…');
     await feedbackPaint();
     await mutate(editing?'update':'create',record,editing?.updatedAt,editing?.originalYear,editing?.expectedRecord);
-    storage.remove(draftKey());resetEntry();toast(demo?'已儲存（示範帳本）':'記錄已儲存');
+    const returnToRecords=Boolean(editing);
+    storage.remove(draftKey());resetEntry();if(returnToRecords)returnFromEntry();toast(demo?'已儲存（示範帳本）':'記錄已儲存');
   }catch(err){showError('save-error',(saving?'儲存未完成：':'')+err.message);if(saving)toast('儲存未完成，輸入內容已保留。');}finally{setBusy(false);finishLoading();}
 });
-$('cancel-edit').onclick=()=>{storage.remove(draftKey());resetEntry();if(history.state?.recordEdit)history.back();};
+$('cancel-edit').onclick=returnFromEntry;
 $('records-body').addEventListener('click',e=>{
  if(e.target.closest('#records-adjust-period')){$('record-period-toggle').click();return;}
   if(busy||refreshBusy)return;
@@ -420,7 +458,7 @@ $('records-body').addEventListener('click',e=>{
   if(edit){
     const r=displayRows().find(r=>r.id===editId);if(!r)return;
     editing={id:r.id,updatedAt:r.updatedAt,originalYear:Number(r.date.slice(0,4)),expectedRecord:{...rows.find(raw=>raw.id===r.id)}};pendingId=r.id;setType(r.type);updateCategoryOptions(r.category);$('entry-date').value=r.date;$('entry-category').value=r.category;$('entry-amount').value=r.amount;$('entry-note').value=r.note;renderStorePicker(r.store||'');
-    $('entry-title').textContent='修改這筆記錄';$('entry-title').closest('.panel-heading').hidden=false;$('cancel-edit').hidden=false;$('entry-delete').hidden=false;$('save-button').textContent='✓ 儲存修改';showError('save-error','');updateDateBounds();storeDraft();navigate('#entry-panel',{resetScroll:true,state:{recordEdit:true}});$('entry-title').focus({preventScroll:true});
+    editing.initialValues=entryValues();$('entry-delete').hidden=false;updateEntryAction();showError('save-error','');updateDateBounds();storeDraft();navigate('#entry-panel',{resetScroll:true,state:{recordEdit:true}});$('page-title').focus({preventScroll:true});
   }
   if(del)openDelete(del.dataset.delete);
 });
@@ -642,7 +680,9 @@ function openCatalogEditor(id=null){
 }
 function closeCatalogEditor(){
  if(catalogBusy||busy||refreshBusy)return false;
- if(JSON.stringify(catalogEditorValues())!==catalogSnapshot&&!confirm('尚未儲存設定，要放棄修改嗎？'))return false;
+ if(JSON.stringify(catalogEditorValues())!==catalogSnapshot){
+  confirmDiscard('設定',()=>$('catalog-dialog').close());return false;
+ }
  $('catalog-dialog').close();return true;
 }
 $('catalog-add-button').onclick=()=>openCatalogEditor();
