@@ -43,7 +43,6 @@
 .calendar-month-nav>label{min-width:0}
 .calendar-month-nav input{display:block;width:100%;min-width:0;min-height:48px;border:1px solid #b8acc5;border-radius:10px;background:white;color:var(--ink);font:inherit;font-size:16px;padding:8px;text-align:center}
 .calendar-month-nav>button:disabled{opacity:.35;cursor:default}
-#calendar-panel .revenue-day.selected{outline-color:var(--purple)}
 #calendar-panel .balance-comparison{background:white;color:var(--ink)}
 #calendar-panel .revenue-day .calendar-prior-label{position:static;transform:none;line-height:1;font-size:11px;font-weight:400;color:var(--muted);margin-bottom:-4px}
 .calendar-comparison-legend{display:flex;gap:6px 12px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}

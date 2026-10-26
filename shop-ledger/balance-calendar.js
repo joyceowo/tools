@@ -10,10 +10,10 @@ const money=v=>'NT$ '+number(v/100);
 
 export function createBalanceCalendar({today}){
  let coverage=annualWindow(today);
- let rows=[],month=today.slice(0,7),mode='calendar',selected=null;
+ let rows=[],month=today.slice(0,7),mode='calendar',selected=today;
  function render(input={}){
   today=input.today??today;coverage=input.coverage??coverage;rows=input.rows??rows;
-  if(month<coverage.startYear+'-01'||month>today.slice(0,7)){month=today.slice(0,7);selected=null;}
+  if(month<coverage.startYear+'-01'||month>today.slice(0,7)){month=today.slice(0,7);selected=today;}
   const currentStatus=yearAvailability(coverage,Number(month.slice(0,4))),previousStatus=yearAvailability(coverage,Number(month.slice(0,4))-1);
   const last=new Date(month+'-01T12:00:00Z');last.setUTCMonth(last.getUTCMonth()+1);last.setUTCDate(0);
   const range={start:month+'-01',end:last.toISOString().slice(0,10)};
@@ -42,7 +42,7 @@ export function createBalanceCalendar({today}){
     const value=(item,key)=>item.has?number(item[key]/100):'—';
     detail+=`<table class="calendar-day-comparison"><caption class="sr-only">同月同日收支，金額單位為元</caption><thead><tr><th scope="col">元</th><th scope="col">${month.slice(0,4)}</th><th scope="col">${Number(month.slice(0,4))-1}</th></tr></thead><tbody>${[['income','收入'],['expense','支出'],['balance','結餘']].map(([key,label])=>`<tr><th scope="row">${label}</th><td class="${day.has&&day[key]<0?'negative-amount':''}">${day.future?'—':day.outside?'期間外':(currentStatus||value(day,key))}</td><td class="${day.previous.has&&day.previous[key]<0?'negative-amount':''}">${day.previous.date?(previousStatus||value(day.previous,key)):'無對應日'}</td></tr>`).join('')}</tbody></table>`;
    }else if(day.has)detail+=`<dl class="day-balance-breakdown"><div><dt>結餘</dt><dd>${money(day.balance)}</dd></div><div><dt>收入</dt><dd>${money(day.income)}</dd></div><div><dt>支出</dt><dd>${money(day.expense)}</dd></div></dl>`;
-   else detail+='<span>'+(currentStatus||calendarDayValue(day,mode).text)+'</span>';
+   else detail+='<span>'+(currentStatus||(day.future?'尚未到日期':'當日無記錄'))+'</span>';
    if(event)detail+='<span>日期註記：'+esc(event)+'</span>';
   }
   $('revenue-day-detail').innerHTML=detail;$('revenue-day-detail').hidden=!day;
@@ -51,7 +51,7 @@ export function createBalanceCalendar({today}){
  }
  function changeMonth(next){
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(next)||next<coverage.startYear+'-01'||next>today.slice(0,7)){render();return;}
-  month=next;selected=null;render();
+  month=next;selected=month===today.slice(0,7)?today:null;render();
  }
  $('calendar-prev').onclick=()=>changeMonth(shiftCalendarMonth(month,-1));
  $('calendar-next').onclick=()=>changeMonth(shiftCalendarMonth(month,1));

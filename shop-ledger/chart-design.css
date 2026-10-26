@@ -1,5 +1,5 @@
-/* Filled marks only: semantic text, calendar and purple interface stay unchanged. */
-:root{--chart-income-bar:#609e8b;--chart-expense-bar:#c6816c;--chart-balance-bar:#9680b6;--chart-category-bar:#8e7a9f;--chart-category-track:#efeaf4}
+/* Shared chart fills and calendar selection; semantic text keeps its original tones. */
+:root{--chart-income-bar:#609e8b;--chart-expense-bar:#c6816c;--chart-balance-bar:#9680b6;--chart-category-bar:#8e7a9f;--chart-category-track:#efeaf4;--calendar-selection:#8e7a9f}
 /* Shared chart hierarchy: context, one main control, plot, exact values. */
 .chart-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 8px}
 .chart-title-row .monthly-trend-summary{margin:0;min-width:0}
@@ -109,7 +109,9 @@
  .overview-selected-values dt .report-series-key{width:12px}
 }
 
-#calendar-panel .revenue-day.selected{outline-color:var(--purple)}
+#calendar-panel .revenue-day.selected{outline:3px solid var(--calendar-selection);outline-offset:1px;box-shadow:0 0 0 1px #fff;z-index:1}
+#calendar-panel .revenue-day.selected>span{font-weight:700}
+@media(forced-colors:active){#calendar-panel .revenue-day.selected{outline-color:Highlight;box-shadow:none}}
 #daily-report-list .summary-row.selected{outline:2px solid var(--purple);outline-offset:-2px;background:none}
 
 #report-workspace #total-view{background:#f2f1f4;padding:2px}
