@@ -24,7 +24,6 @@
 #share-ledger svg{flex:none;width:24px;height:24px}
 #share-ledger:disabled{opacity:.5;cursor:wait}
 #ledger-share{margin-top:12px}
-#ledger-share-note{margin:6px 0 0;font-size:13px;line-height:1.6;color:var(--muted)}
 .sync-tools #ledger-share:not([hidden])+#pwa-install{margin-top:12px}
 #ledger-share-url{font-size:16px;line-height:1.5;overflow-wrap:anywhere;word-break:break-all;resize:vertical}
 @media(forced-colors:active){.sync-tools #share-ledger{border-color:ButtonText;color:ButtonText;background:ButtonFace}}

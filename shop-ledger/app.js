@@ -166,9 +166,8 @@ function render() {
   const destination=pageTitles[location.hash.slice(1)]?location.hash:'#overview';
   renderSyncState();
   $('save-hint').textContent=demo?'示範資料僅存此裝置':'';$('save-hint').hidden=!demo;
-  $('sheet-link').hidden=!config?.sheet;if(config?.sheet)$('sheet-link').href='https://docs.google.com/spreadsheets/d/'+config.sheet+'/edit';
   $('connected-tools').hidden=demo||!ready;
-  $('ledger-share').hidden=demo||!ready||!config?.api||!config?.key;
+  $('ledger-share').hidden=!demo&&(!ready||!config?.api||!config?.key);
   if(shareConnection!==config){
     shareConnection=config;$('ledger-share-manual').hidden=true;$('ledger-share-url').value='';
   }
@@ -528,15 +527,16 @@ $('copy-link').onclick=async()=>{
 };
 $('share-url').onclick=()=>$('share-url').select();
 $('share-ledger').onclick=async()=>{
-  if(demo||!ready||!config?.api||!config?.key)return;
-  const button=$('share-ledger'),connection=config;
+  if(!demo&&(!ready||!config?.api||!config?.key))return;
+  const button=$('share-ledger'),connection=config,sharingDemo=demo;
   if(button.disabled)return;
   if(isLocalShareLink(location.href)){toast('目前是本機網址，請在正式網站開啟帳本後再分享。');return;}
   button.disabled=true;$('ledger-share-manual').hidden=true;$('ledger-share-url').value='';
   try{
-    const url=createShareLink(connection,location.href),result=await shareLedgerLink(url);
-    if(config!==connection||demo)return;
-    if(result==='copied')toast('已複製帳本連結，可貼給對方。');
+    const demoUrl=new URL(location.href);demoUrl.search='';demoUrl.hash='';
+    const url=sharingDemo?demoUrl.href:createShareLink(connection,location.href),result=await shareLedgerLink(url);
+    if(config!==connection||demo!==sharingDemo)return;
+    if(result==='copied')toast(sharingDemo?'已複製示範帳本連結，可貼給對方。':'已複製帳本連結，可貼給對方。');
     if(result==='manual'){
       $('ledger-share-url').value=url;$('ledger-share-manual').hidden=false;
       $('ledger-share-url').focus();$('ledger-share-url').select();
