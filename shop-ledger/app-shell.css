@@ -8,9 +8,10 @@ html:has(dialog[open]){overflow:hidden;overscroll-behavior:none}
 #discard-message{margin:12px 0 20px;font-size:15px;line-height:1.6}
 .discard-actions{display:flex;gap:10px}
 .discard-actions button{flex:1;min-height:48px;padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:16px;cursor:pointer}
+#discard-keep{color:var(--purple);font-weight:600}
 #discard-accept{color:var(--peach)}
 .discard-actions button:focus-visible{outline:2px solid var(--purple);outline-offset:3px}
-@media(forced-colors:active){#discard-dialog{background:Canvas;color:CanvasText}.discard-actions button,#discard-accept{background:ButtonFace;color:ButtonText;border-color:ButtonText}}
+@media(forced-colors:active){#discard-dialog{background:Canvas;color:CanvasText}.discard-actions button,#discard-keep,#discard-accept{background:ButtonFace;color:ButtonText;border-color:ButtonText}}
 /* Shared heading and status stay together on every page, including report details. */
 .app-header .app-heading{display:flex;align-items:center;gap:8px;min-width:0}
 .app-header #page-title{white-space:nowrap}
@@ -35,7 +36,7 @@ html:has(dialog[open]){overflow:hidden;overscroll-behavior:none}
 
 /* Keep the save action reachable above navigation and the software keyboard. */
 .entry-actions{grid-column:1/-1}
-.entry-delete{grid-column:1/-1;justify-self:start;min-height:44px;color:var(--muted);margin-top:8px}
+.entry-delete{grid-column:1/-1;justify-self:start;min-height:44px;color:var(--peach);margin-top:8px}
 #entry-panel .inline-link{display:inline-flex;align-items:center;min-height:44px;padding-block:8px}
 #entry-amount{min-height:44px}
 .calendar-amount-compact{display:none}

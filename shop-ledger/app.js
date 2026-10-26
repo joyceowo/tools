@@ -1,6 +1,7 @@
 import {setupCatalogSort} from './catalog-sort.js';
 import {setupMobileShell} from './mobile-shell.js';
 import {setupDiscardConfirmation} from './discard-confirmation.js';
+import {setupRecordSwipe} from './record-swipe.js';
 import {setupTransactionTools} from './transaction-tools.js';
 import {setupTransactionPeriod} from './transaction-period.js';
 import {annualWindow,assertEntryDate,assertAnnualSupport,yearAvailability} from './annual-window.js';
@@ -35,6 +36,7 @@ history.scrollRestoration='manual';
 setupMobileShell();
 const confirmDiscard = setupDiscardConfirmation();
 const recordsMedia=window.matchMedia('(max-width:760px)');
+setupRecordSwipe($('records-body'), recordsMedia);
 let recordLimit=20;
 let recordViewportAnchor=null,recordLayoutMobile=recordsMedia.matches,recordScrollFrame=null;
 function rememberRecordAnchor(){
@@ -454,7 +456,7 @@ $('records-body').addEventListener('click',e=>{
   const del=e.target.closest('[data-delete]');
   const edit=e.target.closest('[data-edit],[data-open-record]')||(!e.target.closest('button,a,summary,details')&&e.target.closest('[data-record-id]'));
   if(!del&&!edit)return;
-  const editId=edit?.dataset.edit||edit?.dataset.openRecord||edit?.dataset.recordId;
+  const editId=edit?.dataset?.edit||edit?.dataset?.openRecord||edit?.dataset?.recordId;
   if(edit){
     const r=displayRows().find(r=>r.id===editId);if(!r)return;
     editing={id:r.id,updatedAt:r.updatedAt,originalYear:Number(r.date.slice(0,4)),expectedRecord:{...rows.find(raw=>raw.id===r.id)}};pendingId=r.id;setType(r.type);updateCategoryOptions(r.category);$('entry-date').value=r.date;$('entry-category').value=r.category;$('entry-amount').value=r.amount;$('entry-note').value=r.note;renderStorePicker(r.store||'');
